@@ -10,6 +10,7 @@
 #include <GLUT/glut.h>
 #include "pic.h"
 #include <iostream>
+#include <math.h>  
 
 using namespace std;
 
@@ -20,6 +21,7 @@ int g_iLeftMouseButton = 0;    /* 1 if pressed, 0 if not */
 int g_iMiddleMouseButton = 0;
 int g_iRightMouseButton = 0;
 
+
 typedef enum { ROTATE, TRANSLATE, SCALE } CONTROLSTATE;
 
 CONTROLSTATE g_ControlState = ROTATE;
@@ -27,11 +29,17 @@ CONTROLSTATE g_ControlState = ROTATE;
 /* state of the world */
 float g_vLandRotate[3] = {0.0, 0.0, 0.0};
 float g_vLandTranslate[3] = {0.0, 0.0, 0.0};
-float g_vLandScale[3] = {0.005, 0.005, 0.005};
+float g_vLandScale[3] = {0.5, 0.5, 0.5};
 
-
+int CameraPoint = 0;
 //ground
 GLuint texture[1];
+
+GLfloat sceneLength = 10;
+double scale = 10;
+//speedControl range from 0~1; is the t increment value of spline.
+double speedControl = 0.08;
+
 
 /* represents one control point along the spline */
 struct point {
@@ -56,6 +64,11 @@ point * allPointsArray;
 point * tangentArray;
 point * normalArray;
 point * BArray;
+
+
+void printPoint(string name, point x){
+    cout<<"The point "<<name <<" has value "<<x.x << " "<<x.y<<" " <<x.z<<endl; 
+}
 
 
 int loadSplines(char *argv) {
@@ -126,7 +139,7 @@ GL_UNSIGNED_BYTE,
  &img->pix[0]);
  pic_free(img);
 
- cout<<"inside the texload function "<<texture[0]<< " filename : "<< filename<<endl;
+ //cout<<"inside the texload function "<<texture[0]<< " filename : "<< filename<<endl;
 } 
 
  
@@ -142,7 +155,7 @@ struct point CatmullRoll(float t, struct point p1, struct point p2, struct point
   v.x = ((-t3 + 2*t2-t)*(p1.x) + (3*t3-5*t2+2)*(p2.x) + (-3*t3+4*t2+t)* (p3.x) + (t3-t2)*(p4.x))/2;
   v.y = ((-t3 + 2*t2-t)*(p1.y) + (3*t3-5*t2+2)*(p2.y) + (-3*t3+4*t2+t)* (p3.y) + (t3-t2)*(p4.y))/2;
   v.z = ((-t3 + 2*t2-t)*(p1.z) + (3*t3-5*t2+2)*(p2.z) + (-3*t3+4*t2+t)* (p3.z) + (t3-t2)*(p4.z))/2;
- 
+
   return v; 
 }
 
@@ -151,26 +164,13 @@ struct point tagentVector(float t, struct point p1, struct point p2, struct poin
   float t2 = t;
   float t3 = t*t;
   struct point v; // Interpolated point
-  /* Catmull Rom spline Calculation */
-  v.x = ((-3*t3 + 2*2*t2-1)*(p1.x) + (3*3*t3-2*5*t2)*(p2.x) + (-3*3*t3+2*4*t2+1)* (p3.x) + (3*t3-2*t2)*(p4.x))/2;
-  v.y = ((-3*t3 + 2*2*t2-1)*(p1.y) + (3*3*t3-2*5*t2)*(p2.y) + (-3*3*t3+2*4*t2+1)* (p3.y) + (3*t3-2*t2)*(p4.y))/2;
-  v.z = ((-3*t3 + 2*2*t2-1)*(p1.z) + (3*3*t3-2*5*t2)*(p2.z) + (-3*3*t3+2*4*t2+1)* (p3.z) + (3*t3-2*t2)*(p4.z))/2;
+
+
+  v.x = ((-3*t3 + 2*2*t2-1)*(p1.x) + (3*3*t3-2*5*t2)*(p2.x) + (-3*3*t3+2*4*t2+1)* (p3.x) + (3*t3-2*t2)*(p4.x));
+  v.y = ((-3*t3 + 2*2*t2-1)*(p1.y) + (3*3*t3-2*5*t2)*(p2.y) + (-3*3*t3+2*4*t2+1)* (p3.y) + (3*t3-2*t2)*(p4.y));
+  v.z = ((-3*t3 + 2*2*t2-1)*(p1.z) + (3*3*t3-2*5*t2)*(p2.z) + (-3*3*t3+2*4*t2+1)* (p3.z) + (3*t3-2*t2)*(p4.z));
   return v; 
 }
-
-
-struct point computeNormal(double i, double t, double x, double y,double z){
-  struct point n;
-  double ar_x = x-0.3;
-  double ar_y = y;
-  double ar_z = z-0.3;
-
-  n.x = (y*ar_z)-(z*ar_y);
-  n.y = (z*ar_x)-(x*ar_z);
-  n.z = (x*ar_y)-(y*ar_x);
-  return n;
-}
-
 
 struct point crossProduct(point p1, point p2){
   struct point n;
@@ -180,86 +180,96 @@ struct point crossProduct(point p1, point p2){
   return n;
 }
 
+void normalizeVector(point& p){
+  double length = sqrt(p.x*p.x+p.y*p.y+p.z*p.z);
+  point temp;
+
+  p.x = p.x/length;
+  p.y = p.y/length;
+  p.z = p.z/length;
+}
 
  
 void initScene()                                                
 {
-  // cout<<"intScene gets called"<<endl; 
   glGenTextures(1, texture);
-  
-  texload(0,"ground1.jpg");
-  // cout<<"glGenTextures"<<*texture<<endl; 
-
+  texload(0,"skybox/negy.jpg");
+  texload(1,"skybox/posz.jpg");
+  texload(2,"skybox/posy.jpg");
+  texload(3,"skybox/negz.jpg");
+  texload(4,"skybox/posx.jpg");
+  texload(5,"skybox/negx.jpg");
+ 
   glClearColor(0.0,0.0,0.0,0.0);
   glShadeModel(GL_FLAT);
   glEnable(GL_POINT_SMOOTH);
   glEnable(GL_LINE_SMOOTH);
   glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);  // Make round points, not square points
   glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);   // Antialias the lines
- 
 }
  
-/* void mouse(int button,)
-{
- 
-*/
 void reshape(int w,int h)
 {
+  GLfloat fovy = 30.0;
   GLfloat aspect = (GLfloat) w / (GLfloat) h;
   glViewport(0, 0, w, h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-
-  //gluPerspective(30.0, aspect, 0.1, 40);
-  //gluLookAt(1.0,1.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0);
-     
-
-
-     // if (w <= h) /* aspect <= 1 */
-     //   glOrtho(-2.0, 2.0, -2.0/aspect, 2.0/aspect, -10, 10);
-     // else  aspect > 1 
-     //   glOrtho(-2.0*aspect, 2.0*aspect, -2.0, 2.0, -10, 10);
-  glMatrixMode(GL_MODELVIEW); 
-     
-  // glViewport(0,0,(GLsizei)w,(GLsizei)h);
-  // glMatrixMode(GL_PROJECTION);
-  // if(w<=h)
-  //   glOrtho(-60.0,60.0,-60.0*(GLfloat)h/(GLfloat)w,60.0*(GLfloat)h/(GLfloat)w,-60.0,60.0);
-  // else
-  //   glOrtho(-60.0,6.0,-60.0*(GLfloat)w/(GLfloat)h,60.0*(GLfloat)w/(GLfloat)h,-60.0,60.0);
-  // glMatrixMode(GL_MODELVIEW);
-  // glLoadIdentity();
- 
+  gluPerspective(fovy,aspect,0.01,10);
+  glMatrixMode(GL_MODELVIEW);  
+  
 }
 
-void storePoints(double i, double t, double x, double y,double z){
-  int temp = (int)(i*100+t*100);
-  allPointsArray[temp].x=x;
-  allPointsArray[temp].y=y;
-  allPointsArray[temp].z=z;
+void storePoints(double i, double t, double x, double y,double z,int sizeCounter){
+  //int temp = (int)(i*100+t*100);
+  allPointsArray[sizeCounter].x=x;
+  allPointsArray[sizeCounter].y=y;
+  allPointsArray[sizeCounter].z=z;
 }
 
 
-void storeTangentValue(double i, double t, double x, double y,double z){
-  int temp = (int)(i*100+t*100);
-  tangentArray[temp].x=x;
-  tangentArray[temp].y=y;
-  tangentArray[temp].z=z;
+void storeTangentValue(double i, double t, double x, double y,double z,int sizeCounter){
+  //int temp = (int)(i*100+t*100);  
+  tangentArray[sizeCounter].x=x;
+  tangentArray[sizeCounter].y=y;
+  tangentArray[sizeCounter].z=z;
+  // cout<<"index i "<<i<<endl;
+  // printPoint("tangent value",tangentArray[temp]);
+
+  // cout<<"tangent at Index "<< temp<<endl;
+  // cout<<"v.x: " <<x <<"   v.y: "<<y<<"   v.z: " <<z<<endl;
 }
 
 
-void storeNormalVector(double i, double t, double x, double y,double z){
-  int temp = (int)(i*100+t*100);
-  normalArray[temp].x=x;
-  normalArray[temp].y=y;
-  normalArray[temp].z=z;
+void storeNormalVector(double i, double t, double x, double y,double z,int sizeCounter){
+  // int temp = (int)(i*100+t*100);
+  normalArray[sizeCounter].x=x;
+  normalArray[sizeCounter].y=y;
+  normalArray[sizeCounter].z=z;
 }
 
 
 void PopulateNormalVectorArray(){
-  for(int i = 1 ; i < g_Splines[0].numControlPoints*100; i++){
-    normalArray[i] = crossProduct(BArray[i-1],tangentArray[i]);
-    BArray[i] = crossProduct(tangentArray[i],normalArray[i]);
+  for(int i = 1 ; i < g_Splines[0].numControlPoints/speedControl; i++){
+          //cout<<i<<endl;
+          // printPoint(" BArray[i-1]", BArray[i-1]);
+          
+          normalizeVector(tangentArray[i]);
+          normalArray[i] = crossProduct(BArray[i-1],tangentArray[i]);
+          normalizeVector(normalArray[i]);
+          // printPoint("HERE IN THE POPULATEFUNCTION BArray[i-1] ", BArray[i-1]);
+          // printPoint(" normalArray[i]", normalArray[i]);
+          //printPoint(" tangentArray[14]", tangentArray[14]);
+          //printPoint(" normalArray[13]", normalArray[13]);
+          BArray[i] = crossProduct(tangentArray[i],normalArray[i]);
+          //printPoint("HERE IN THE POPULATEFUNCTION BArray[13] ", BArray[13]);
+          normalizeVector(BArray[i]);
+          // cout<<"index "<<i<<endl;
+          // printPoint("HERE IN THE POPULATEFUNCTION tangentArray[i] ", tangentArray[i]);
+          // printPoint("HERE IN THE POPULATEFUNCTION ArrayAllPoints i ", allPointsArray[i]);
+          // printPoint("HERE IN THE POPULATEFUNCTION BArray[i] ", BArray[i]);
+          // printPoint(" normalArray[i]", normalArray[i]);
+
     //cout<<"normalArray x VALUE at I" << normalArray[i].x<<endl;
     // cout<<"normalArray x VALUE at index i " << normalArray[i].x<<endl;
     // cout<<"normalArray y VALUE at index i " << normalArray[i].y<<endl;
@@ -271,96 +281,69 @@ void PopulateNormalVectorArray(){
   }
 }
 
-void display(void)
-{
-  //rotation with movement of mouse drag
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glLoadIdentity();
 
 
-  glTranslatef(g_vLandTranslate[0],g_vLandTranslate[1],g_vLandTranslate[2]);
-
-
-  glRotatef(g_vLandRotate[0],1,0,0);
-  glRotatef(g_vLandRotate[1],0,1,0);
-  glRotatef(g_vLandRotate[2],0,0,1);
-  glScalef(g_vLandScale[0],-g_vLandScale[1],-g_vLandScale[2]);
-
-
-  //display the ground image 
- glEnable(GL_TEXTURE_2D);
- glBindTexture(GL_TEXTURE_2D, texture[0]);
- glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
- glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
- glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-
- glBegin(GL_POLYGON);
- glTexCoord2f(1.0, 0.0);
- glVertex3f(1.0, 1.0, 1.0);
- glTexCoord2f(0.0, 0.0);
- glVertex3f(-1.0, 1.0, 1.0);
- glTexCoord2f(0.0, 1.0);
- glVertex3f(-1.0, 1.0, -1.0);
- glTexCoord2f(1.0, 1.0);
- glVertex3f(1.0, 1.0, -1.0);
- glEnd();
- glDisable(GL_TEXTURE_2D);
-
-  //  glPushMatrix();
-  //  glTranslatef(-10/2, -10/2, 0); // move object to centre
-
+ void drawSpline(){
   //display the splines
-  float t;
+  // double t;
   struct point v; //Interpolated point 
   struct point tangent;
   struct point normal ;
 
-  struct point p1,p2,p3,p4,p5,p6,p7,p8,p9;
-  double scale = 5 ;
-  
   for(int i= 0 ; i < g_Splines[0].numControlPoints ; i++){
-        pointArray[i].x = g_Splines[0].points[i].x*scale;
-        pointArray[i].y = g_Splines[0].points[i].y*scale;
-        pointArray[i].z = g_Splines[0].points[i].z*scale;
+        pointArray[i].x = g_Splines[0].points[i].x/scale;
+        //pointArray[i].x = g_Splines[0].points[i].x/scale-0.5;
+        pointArray[i].y = g_Splines[0].points[i].y/scale;
+        pointArray[i].z = g_Splines[0].points[i].z/scale;
         //printf("Values of p1.x = %f and v.y = %f\n and v.z = %f\n", pointArray[i].x,pointArray[i].y,pointArray[i].z);
   }
 
   //glClear(GL_COLOR_BUFFER_BIT);
-  glColor3f(1.0f,1.0f,1.0f);
+
+  int sizeCounter = 0;
   glPointSize(8);
-  
+  glBegin(GL_LINE_STRIP);
+
     for(int i = 0 ; i< g_Splines[0].numControlPoints - 3; i++){
-        for(t=0;t<1;t+=0.01)
+        for(double t=0;t<1;t+=speedControl)
         {
-        
-          glBegin(GL_POINTS);
           //compute the segmentation point
           v = CatmullRoll(t,pointArray[i],pointArray[i+1],pointArray[i+2],pointArray[i+3]);
-          storePoints(i,t,v.x,v.y,v.z);
+          storePoints(i,t,v.x,v.y,v.z,sizeCounter);
 
           //computer the tangent value at each segmentation point
           tangent = tagentVector(t,pointArray[i],pointArray[i+1],pointArray[i+2],pointArray[i+3]);
-          cout<<tangent.x<<" tangent.x"<<endl;
-          cout<<tangent.y<<" tangent.y"<<endl;
-          cout<<tangent.z<<" tangent.z"<<endl;
+          storeTangentValue(i,t,tangent.x,tangent.y,tangent.z,sizeCounter);
+          //cout<<"index i "<<i<<endl;
+          // printPoint("tangent value",tangent);
+          
+          //weird things ever
+          //printPoint(" tangentArray[14]", tangentArray[14]);
+          // cout<<"index sizeCounter "<<sizeCounter<<endl;
+          // cout<<"value of t "<<t<<endl;
+          // int temp = (int)(i*100+t*100);
+          // cout<<"the value of temp "<<temp<<endl;
 
-          storeTangentValue(i,t,tangent.x,tangent.y,tangent.z);
+          // printPoint("HERE IN THE POPULATEFUNCTION tangentArray[14] ", tangentArray[(int)(temp)]);
 
           //draw the trajectory 
           glVertex3f(v.x,v.y,v.z);
-          glEnd();
+          sizeCounter++;
         }
     }
+    glEnd();
     //compute the normal value of each point 
-
     //manually create an arbitrary value and populate the array based on that
     struct point arbitraryPoint;
     struct point firstNormal;
-    arbitraryPoint.x = tangentArray[0].x;
-    arbitraryPoint.y = tangentArray[0].y-0.3;
-    arbitraryPoint.z = tangentArray[0].z-0.3;
+
+    arbitraryPoint.x = 0;
+    arbitraryPoint.y = 1;
+    arbitraryPoint.z = 0;
 
     firstNormal = crossProduct(tangentArray[0],arbitraryPoint);
+    normalizeVector(firstNormal);
+    //printPoint("firstNormal",firstNormal);
 
     normalArray[0].x = firstNormal.x;
     normalArray[0].y = firstNormal.y;
@@ -370,18 +353,161 @@ void display(void)
     // cout<<"normalArray y VALUE at index 0 " << normalArray[0].y<<endl;
     // cout<<"normalArray z VALUE at index 0 " << normalArray[0].x<<endl;
 
-    BArray[0] = crossProduct(tangentArray[0],arbitraryPoint);
-
+    BArray[0] = crossProduct(tangentArray[0],normalArray[0]);
+    //normalizeVector(BArray[0]);
+    //printPoint("BArray[0]",BArray[0]);
     // cout<<"normalArray x VALUE at index i " << BArray[0].x<<endl;
     // cout<<"BArray y VALUE at index i " << BArray[0].y<<endl;
     // cout<<"BArray z VALUE at index i " << BArray[0].x<<endl;
+ }
 
-    //populate the normalArray based on existing 
-    PopulateNormalVectorArray();
+void drawGround(int i){
+    //display the ground image 
+  
+ glEnable(GL_TEXTURE_2D);
+ glBindTexture(GL_TEXTURE_2D, texture[i]);
+ glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
+ glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+ glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+
+
+ glBegin(GL_POLYGON);
+  if(i==0){
+    glTexCoord2f(1.0, 0.0);
+    glVertex3f(sceneLength, sceneLength, sceneLength);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3f(-sceneLength, sceneLength, sceneLength);
+    glTexCoord2f(0.0, 1.0);
+    glVertex3f(-sceneLength, sceneLength, -sceneLength);
+    glTexCoord2f(1.0, 1.0);
+    glVertex3f(sceneLength, sceneLength, -sceneLength);
+  }else if(i==1){
+    glTexCoord2f(1.0, 0.0);
+    glVertex3f(sceneLength, sceneLength, sceneLength);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3f(-sceneLength, sceneLength, sceneLength);
+    glTexCoord2f(0.0, 1.0);
+    glVertex3f(-sceneLength, -sceneLength, sceneLength);
+    glTexCoord2f(1.0, 1.0);
+    glVertex3f(sceneLength, -sceneLength, sceneLength);
+  }else if(i==2){
+    glTexCoord2f(1.0, 0.0);
+    glVertex3f(sceneLength, -sceneLength, sceneLength);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3f(-sceneLength, -sceneLength, sceneLength);
+    glTexCoord2f(0.0, 1.0);
+    glVertex3f(-sceneLength, -sceneLength, -sceneLength);
+    glTexCoord2f(1.0, 1.0);
+    glVertex3f(sceneLength, -sceneLength, -sceneLength);
+  }else if(i==3){
+    glTexCoord2f(1.0, 0.0);
+    glVertex3f(sceneLength, -sceneLength, -sceneLength);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3f(-sceneLength, -sceneLength, -sceneLength);
+    glTexCoord2f(0.0, 1.0);
+    glVertex3f(-sceneLength, sceneLength, -sceneLength);
+    glTexCoord2f(1.0, 1.0);
+    glVertex3f(sceneLength, sceneLength, -sceneLength);
+  }else if(i==4){
+    glTexCoord2f(1.0, 0.0);
+    glVertex3f(sceneLength, sceneLength, sceneLength);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3f(sceneLength, -sceneLength, sceneLength);
+    glTexCoord2f(0.0, 1.0);
+    glVertex3f(sceneLength, -sceneLength, -sceneLength);
+    glTexCoord2f(1.0, 1.0);
+    glVertex3f(sceneLength, sceneLength, -sceneLength);
+  }else if(i==5){
+    glTexCoord2f(1.0, 0.0);
+    glVertex3f(-sceneLength, sceneLength, sceneLength);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3f(-sceneLength, -sceneLength, sceneLength);
+    glTexCoord2f(0.0, 1.0);
+    glVertex3f(-sceneLength, -sceneLength, -sceneLength);
+    glTexCoord2f(1.0, 1.0);
+    glVertex3f(-sceneLength, sceneLength, -sceneLength);
+  }
+
+
+ glEnd();
+ glDisable(GL_TEXTURE_2D);
+}
+
+
+void updateCamera(){
+  if(CameraPoint<10*(g_Splines[0].numControlPoints-3)){
+    GLdouble centerx = allPointsArray[CameraPoint].x+0.01*tangentArray[CameraPoint].x;
+    GLdouble centery = allPointsArray[CameraPoint].y+0.01*tangentArray[CameraPoint].y;
+    GLdouble centerz = allPointsArray[CameraPoint].z+0.01*tangentArray[CameraPoint].z;
+    gluLookAt(allPointsArray[CameraPoint].x,allPointsArray[CameraPoint].y,allPointsArray[CameraPoint].z,centerx,centery,centerz,normalArray[CameraPoint].x,normalArray[CameraPoint].y,normalArray[CameraPoint].z);
+    
+
+    // glBegin(GL_LINE_STRIP);
+    //       glColor3f(1.0f,0.0f,0.0f);
+    //       glVertex3f(allPointsArray[CameraPoint].x,allPointsArray[CameraPoint].y,allPointsArray[CameraPoint].z);
+    //       glVertex3f(allPointsArray[CameraPoint].x+tangentArray[CameraPoint].x,allPointsArray[CameraPoint].y+tangentArray[CameraPoint].y,allPointsArray[CameraPoint].z+tangentArray[CameraPoint].z);
+    //       glColor3f(1.0f,1.0f,1.0f);
+    // glEnd();
+
+
+    cout<<CameraPoint<<" CameraPoint "<<endl;
+    cout<<"Look at Point eye value "<<allPointsArray[CameraPoint].x<<" "<<allPointsArray[CameraPoint].y<<" "<<allPointsArray[CameraPoint].z<<endl;
+    cout<<"->normal vector value  "<<normalArray[CameraPoint].x<<" "<<normalArray[CameraPoint].y<<" "<<normalArray[CameraPoint].z<<endl;
+    cout<<"->tangentArray value"<<tangentArray[CameraPoint].x<<" "<<tangentArray[CameraPoint].y<<" "<<tangentArray[CameraPoint].z<<endl;
+    
+    CameraPoint++;
+  }else{
+    cout<<"beyond the bound"<<endl;
+    cout<<"CameraPoint "<<CameraPoint<<endl;
+    CameraPoint=0;
+    cout<<"updated CameraPoint "<<CameraPoint<<endl;
+    return;
+  }
+}
+
+
+void display(void)
+{
+  // glBegin(GL_LINE); 
+  //         glColor3f(1.0f,0.0f,0.0f);glColor3b(1,0,0);glVertex3f(0,0,0);glVertex3f(10,0,0);
+  // glEnd();
+
+  //rotation with movement of mouse drag
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glLoadIdentity();
+
+  glTranslatef(g_vLandTranslate[0],g_vLandTranslate[1],g_vLandTranslate[2]);
+
+  glColor3f(1.0f,1.0f,1.0f);
+
+  glRotatef(g_vLandRotate[0],1,0,0);
+  glRotatef(g_vLandRotate[1],0,1,0);
+  glRotatef(g_vLandRotate[2],0,0,1);
+  glScalef(g_vLandScale[0],-g_vLandScale[1],-g_vLandScale[2]);
+
+  updateCamera();
+  drawSpline();
+
+  drawGround(0);
+  drawGround(1);
+  drawGround(2);
+  drawGround(3);
+  drawGround(4);
+  drawGround(5);
+
+
+  //populate the normalArray based on existing 
+  PopulateNormalVectorArray();
+    // cout<<"Point at index 14 "<<allPointsArray[14].x<<" "<<allPointsArray[14].y<<" "<<allPointsArray[14].z<<endl;
+    // cout<<"normal at 14  "<<normalArray[14].x<<" "<<normalArray[14].y<<" "<<normalArray[14].z<<endl;
+    // cout<<" CameraPoint "<<endl;
+
 
   glFlush();
 }
  
+
+
 /* converts mouse drags into information about 
 rotation/translation/scaling */
 void mousedrag(int x, int y)
@@ -497,11 +623,11 @@ int main (int argc, char ** argv)
   }
 
   loadSplines(argv[1]);
-  pointArray = new point[g_Splines[0].numControlPoints];
-  allPointsArray = new point[g_Splines[0].numControlPoints*100];
-  tangentArray = new point[g_Splines[0].numControlPoints*100];
-  normalArray = new point[g_Splines[0].numControlPoints*100];
-  BArray = new point[g_Splines[0].numControlPoints*100];
+  pointArray = new point[(int)(g_Splines[0].numControlPoints)];
+  allPointsArray = new point[(int)(g_Splines[0].numControlPoints/speedControl)];
+  tangentArray = new point[(int)(g_Splines[0].numControlPoints/speedControl)];
+  normalArray = new point[(int)(g_Splines[0].numControlPoints/speedControl)];
+  BArray = new point[(int)(g_Splines[0].numControlPoints/speedControl)];
 
   //  replace with any animate code 
   // glutIdleFunc(doIdle);
