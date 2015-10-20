@@ -33,12 +33,12 @@ float g_vLandScale[3] = {0.5, 0.5, 0.5};
 
 int CameraPoint = 0;
 //ground
-GLuint texture[1];
+GLuint texture[6];
 
-GLfloat sceneLength = 10;
-double scale = 10;
+GLfloat sceneLength = 1;
+double scale = 1;
 //speedControl range from 0~1; is the t increment value of spline.
-double speedControl = 0.08;
+double speedControl = 0.01;
 
 
 /* represents one control point along the spline */
@@ -192,7 +192,7 @@ void normalizeVector(point& p){
  
 void initScene()                                                
 {
-  glGenTextures(1, texture);
+  glGenTextures(6, texture);
   texload(0,"skybox/negy.jpg");
   texload(1,"skybox/posz.jpg");
   texload(2,"skybox/posy.jpg");
@@ -200,7 +200,9 @@ void initScene()
   texload(4,"skybox/posx.jpg");
   texload(5,"skybox/negx.jpg");
  
+
   glClearColor(0.0,0.0,0.0,0.0);
+  glEnable(GL_DEPTH_TEST);
   glShadeModel(GL_FLAT);
   glEnable(GL_POINT_SMOOTH);
   glEnable(GL_LINE_SMOOTH);
@@ -215,7 +217,7 @@ void reshape(int w,int h)
   glViewport(0, 0, w, h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(fovy,aspect,0.01,10);
+  //gluPerspective(fovy,aspect,0.01,1000);
   glMatrixMode(GL_MODELVIEW);  
   
 }
@@ -292,7 +294,6 @@ void PopulateNormalVectorArray(){
 
   for(int i= 0 ; i < g_Splines[0].numControlPoints ; i++){
         pointArray[i].x = g_Splines[0].points[i].x/scale;
-        //pointArray[i].x = g_Splines[0].points[i].x/scale-0.5;
         pointArray[i].y = g_Splines[0].points[i].y/scale;
         pointArray[i].z = g_Splines[0].points[i].z/scale;
         //printf("Values of p1.x = %f and v.y = %f\n and v.z = %f\n", pointArray[i].x,pointArray[i].y,pointArray[i].z);
@@ -338,8 +339,8 @@ void PopulateNormalVectorArray(){
     struct point firstNormal;
 
     arbitraryPoint.x = 0;
-    arbitraryPoint.y = 1;
-    arbitraryPoint.z = 0;
+    arbitraryPoint.y = 0;
+    arbitraryPoint.z = 1;
 
     firstNormal = crossProduct(tangentArray[0],arbitraryPoint);
     normalizeVector(firstNormal);
@@ -382,63 +383,61 @@ void drawGround(int i){
     glTexCoord2f(1.0, 1.0);
     glVertex3f(sceneLength, sceneLength, -sceneLength);
   }else if(i==1){
-    glTexCoord2f(1.0, 0.0);
-    glVertex3f(sceneLength, sceneLength, sceneLength);
-    glTexCoord2f(0.0, 0.0);
-    glVertex3f(-sceneLength, sceneLength, sceneLength);
-    glTexCoord2f(0.0, 1.0);
-    glVertex3f(-sceneLength, -sceneLength, sceneLength);
     glTexCoord2f(1.0, 1.0);
+    glVertex3f(sceneLength, sceneLength, sceneLength);
+    glTexCoord2f(0.0, 1.0);
+    glVertex3f(-sceneLength, sceneLength, sceneLength);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3f(-sceneLength, -sceneLength, sceneLength);
+    glTexCoord2f(1.0, 0.0);
     glVertex3f(sceneLength, -sceneLength, sceneLength);
   }else if(i==2){
-    glTexCoord2f(1.0, 0.0);
-    glVertex3f(sceneLength, -sceneLength, sceneLength);
-    glTexCoord2f(0.0, 0.0);
-    glVertex3f(-sceneLength, -sceneLength, sceneLength);
-    glTexCoord2f(0.0, 1.0);
-    glVertex3f(-sceneLength, -sceneLength, -sceneLength);
     glTexCoord2f(1.0, 1.0);
+    glVertex3f(sceneLength, -sceneLength, sceneLength);
+    glTexCoord2f(0.0, 1.0);
+    glVertex3f(-sceneLength, -sceneLength, sceneLength);
+    glTexCoord2f(0.0, 0.0);
+    glVertex3f(-sceneLength, -sceneLength, -sceneLength);
+    glTexCoord2f(1.0, 0.0);
     glVertex3f(sceneLength, -sceneLength, -sceneLength);
   }else if(i==3){
-    glTexCoord2f(1.0, 0.0);
-    glVertex3f(sceneLength, -sceneLength, -sceneLength);
     glTexCoord2f(0.0, 0.0);
+    glVertex3f(sceneLength, -sceneLength, -sceneLength);
+    glTexCoord2f(1.0, 0.0);
     glVertex3f(-sceneLength, -sceneLength, -sceneLength);
-    glTexCoord2f(0.0, 1.0);
-    glVertex3f(-sceneLength, sceneLength, -sceneLength);
     glTexCoord2f(1.0, 1.0);
+    glVertex3f(-sceneLength, sceneLength, -sceneLength);
+    glTexCoord2f(0.0, 1.0);
     glVertex3f(sceneLength, sceneLength, -sceneLength);
   }else if(i==4){
-    glTexCoord2f(1.0, 0.0);
+    glTexCoord2f(0.0, 1.0);
     glVertex3f(sceneLength, sceneLength, sceneLength);
     glTexCoord2f(0.0, 0.0);
     glVertex3f(sceneLength, -sceneLength, sceneLength);
-    glTexCoord2f(0.0, 1.0);
+    glTexCoord2f(1.0, 0.0);
     glVertex3f(sceneLength, -sceneLength, -sceneLength);
     glTexCoord2f(1.0, 1.0);
     glVertex3f(sceneLength, sceneLength, -sceneLength);
   }else if(i==5){
-    glTexCoord2f(1.0, 0.0);
-    glVertex3f(-sceneLength, sceneLength, sceneLength);
     glTexCoord2f(0.0, 0.0);
-    glVertex3f(-sceneLength, -sceneLength, sceneLength);
+    glVertex3f(-sceneLength, sceneLength, sceneLength);
     glTexCoord2f(0.0, 1.0);
-    glVertex3f(-sceneLength, -sceneLength, -sceneLength);
+    glVertex3f(-sceneLength, -sceneLength, sceneLength);
     glTexCoord2f(1.0, 1.0);
+    glVertex3f(-sceneLength, -sceneLength, -sceneLength);
+    glTexCoord2f(1.0, 0.0);
     glVertex3f(-sceneLength, sceneLength, -sceneLength);
   }
-
-
  glEnd();
  glDisable(GL_TEXTURE_2D);
 }
 
 
 void updateCamera(){
-  if(CameraPoint<10*(g_Splines[0].numControlPoints-3)){
-    GLdouble centerx = allPointsArray[CameraPoint].x+0.01*tangentArray[CameraPoint].x;
-    GLdouble centery = allPointsArray[CameraPoint].y+0.01*tangentArray[CameraPoint].y;
-    GLdouble centerz = allPointsArray[CameraPoint].z+0.01*tangentArray[CameraPoint].z;
+  if(CameraPoint<(g_Splines[0].numControlPoints-3)/speedControl){
+    GLdouble centerx = allPointsArray[CameraPoint].x+10*tangentArray[CameraPoint].x;
+    GLdouble centery = allPointsArray[CameraPoint].y+10*tangentArray[CameraPoint].y;
+    GLdouble centerz = allPointsArray[CameraPoint].z+10*tangentArray[CameraPoint].z;
     gluLookAt(allPointsArray[CameraPoint].x,allPointsArray[CameraPoint].y,allPointsArray[CameraPoint].z,centerx,centery,centerz,normalArray[CameraPoint].x,normalArray[CameraPoint].y,normalArray[CameraPoint].z);
     
 
@@ -485,7 +484,7 @@ void display(void)
   glRotatef(g_vLandRotate[2],0,0,1);
   glScalef(g_vLandScale[0],-g_vLandScale[1],-g_vLandScale[2]);
 
-  updateCamera();
+  //updateCamera();
   drawSpline();
 
   drawGround(0);
@@ -635,7 +634,8 @@ int main (int argc, char ** argv)
   glutInit(&argc, argv);
 
   //glutInit(&amp;argc, argv;);
-  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_DEPTH | GLUT_RGBA);
+
   glutInitWindowSize(1000,1000);
   glutInitWindowPosition(1,1);
   glutCreateWindow("Catmull Roll");
