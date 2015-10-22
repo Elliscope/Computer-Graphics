@@ -35,7 +35,7 @@ int CameraPoint = 0;
 //ground
 GLuint texture[6];
 
-GLfloat sceneLength = 1;
+GLfloat sceneLength = 1000;
 double scale = 1;
 //speedControl range from 0~1; is the t increment value of spline.
 double speedControl = 0.01;
@@ -217,7 +217,7 @@ void reshape(int w,int h)
   glViewport(0, 0, w, h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  //gluPerspective(fovy,aspect,0.01,1000);
+  gluPerspective(fovy,aspect,0.01,1000);
   glMatrixMode(GL_MODELVIEW);  
   
 }
@@ -438,7 +438,7 @@ void updateCamera(){
     GLdouble centerx = allPointsArray[CameraPoint].x+10*tangentArray[CameraPoint].x;
     GLdouble centery = allPointsArray[CameraPoint].y+10*tangentArray[CameraPoint].y;
     GLdouble centerz = allPointsArray[CameraPoint].z+10*tangentArray[CameraPoint].z;
-    gluLookAt(allPointsArray[CameraPoint].x,allPointsArray[CameraPoint].y,allPointsArray[CameraPoint].z,centerx,centery,centerz,normalArray[CameraPoint].x,normalArray[CameraPoint].y,normalArray[CameraPoint].z);
+    gluLookAt(allPointsArray[CameraPoint].x,allPointsArray[CameraPoint].y,allPointsArray[CameraPoint].z,centerx,centery,centerz,BArray[CameraPoint].x,BArray[CameraPoint].y,BArray[CameraPoint].z);
     
 
     // glBegin(GL_LINE_STRIP);
@@ -451,7 +451,7 @@ void updateCamera(){
 
     cout<<CameraPoint<<" CameraPoint "<<endl;
     cout<<"Look at Point eye value "<<allPointsArray[CameraPoint].x<<" "<<allPointsArray[CameraPoint].y<<" "<<allPointsArray[CameraPoint].z<<endl;
-    cout<<"->normal vector value  "<<normalArray[CameraPoint].x<<" "<<normalArray[CameraPoint].y<<" "<<normalArray[CameraPoint].z<<endl;
+    cout<<"->BArray value  "<<BArray[CameraPoint].x<<" "<<BArray[CameraPoint].y<<" "<<BArray[CameraPoint].z<<endl;
     cout<<"->tangentArray value"<<tangentArray[CameraPoint].x<<" "<<tangentArray[CameraPoint].y<<" "<<tangentArray[CameraPoint].z<<endl;
     
     CameraPoint++;
@@ -484,8 +484,11 @@ void display(void)
   glRotatef(g_vLandRotate[2],0,0,1);
   glScalef(g_vLandScale[0],-g_vLandScale[1],-g_vLandScale[2]);
 
-  //updateCamera();
+updateCamera();
   drawSpline();
+  
+  
+ 
 
   drawGround(0);
   drawGround(1);
