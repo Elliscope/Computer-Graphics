@@ -298,10 +298,115 @@ void PopulateNormalVectorArray(){
 
 
 
- void drawSpline(){
+ // void drawSpline(){
+ //  ini = false;
+ //  int sizeCounter = 0;
+ //  point v0;
+ //  point v1;
+ //  point v2;
+ //  point v3;
 
+ //  point v4;
+ //  point v5;
+ //  point v6;
+ //  point v7;
+
+ //  point nbDif;
+ //  point nbSum;
+
+ //  double a = 0.001;
+
+ //  glBegin(GL_TRIANGLE_STRIP);
+
+ //    for(int i = 0 ; i< g_Splines[0].numControlPoints - 3; i++){
+ //        for(double t=0;t<1;t+=speedControl)
+ //        {
+ //          nbDif.x = normalArray[sizeCounter].x- BArray[sizeCounter].x;
+ //          nbDif.y = normalArray[sizeCounter].y- BArray[sizeCounter].y;
+ //          nbDif.z = normalArray[sizeCounter].z- BArray[sizeCounter].z;
+
+ //          nbSum.x = normalArray[sizeCounter].x+ BArray[sizeCounter].x;
+ //          nbSum.y = normalArray[sizeCounter].y+ BArray[sizeCounter].y;
+ //          nbSum.z = normalArray[sizeCounter].z+ BArray[sizeCounter].z;
+
+ //          v0.x = allPointsArray[sizeCounter].x + a * (-nbDif.x);
+ //          v0.y = allPointsArray[sizeCounter].y + a * (-nbDif.y);
+ //          v0.z = allPointsArray[sizeCounter].z + a * (-nbDif.z);
+
+ //          v1.x = allPointsArray[sizeCounter].x + a * (nbSum.x);
+ //          v1.y = allPointsArray[sizeCounter].y + a * (nbSum.y);
+ //          v1.z = allPointsArray[sizeCounter].z + a * (nbSum.z);
+
+ //          v2.x = allPointsArray[sizeCounter].x + a * (nbDif.x);
+ //          v2.y = allPointsArray[sizeCounter].y + a * (nbDif.y);
+ //          v2.z = allPointsArray[sizeCounter].z + a * (nbDif.z);
+
+ //          v3.x = allPointsArray[sizeCounter].x + a * (-nbSum.x);
+ //          v3.y = allPointsArray[sizeCounter].y + a * (-nbSum.y);
+ //          v3.z = allPointsArray[sizeCounter].z + a * (-nbSum.z);
+
+ //          glColor3f(0.5f,0.0f,0.5f);
+
+ //          glVertex3f(v0.x,v0.y,v0.z);
+ //          glVertex3f(v1.x,v1.y,v1.z);
+ //          glVertex3f(v2.x,v2.y,v2.z);
+ //          glVertex3f(v3.x,v3.y,v3.z);
+
+ //          if(((i==g_Splines[0].numControlPoints - 4))){
+ //            glEnd();
+ //            continue;
+ //          }
+ //          if(ini){
+ //            glVertex3f(v1.x,v1.y,v1.z);
+ //            glVertex3f(v5.x,v5.y,v5.z);
+ //            glVertex3f(v4.x,v4.y,v4.z);
+ //            glVertex3f(v0.x,v0.y,v0.z);
+
+ //            glVertex3f(v2.x,v2.y,v2.z);
+ //            glVertex3f(v6.x,v6.y,v6.z);
+ //            glVertex3f(v5.x,v5.y,v5.z);
+ //            glVertex3f(v1.x,v1.y,v1.z);
+
+ //            glVertex3f(v2.x,v2.y,v2.z);
+ //            glVertex3f(v6.x,v6.y,v6.z);
+ //            glVertex3f(v7.x,v7.y,v7.z);
+ //            glVertex3f(v3.x,v3.y,v3.z);
+
+ //            glVertex3f(v0.x,v0.y,v0.z);
+ //            glVertex3f(v4.x,v4.y,v4.z);
+ //            glVertex3f(v7.x,v7.y,v7.z);
+ //            glVertex3f(v3.x,v3.y,v3.z);
+ //          }
+
+ //          ini = true;
+
+ //          v4.x = v0.x;
+ //          v4.y = v0.y; 
+ //          v4.z = v0.z ;
+
+ //          v5.x = v1.x;
+ //          v5.y = v1.y; 
+ //          v5.z = v1.z; 
+
+ //          v6.x = v2.x;
+ //          v6.y = v2.y; 
+ //          v6.z = v2.z; 
+        
+ //          v7.x = v3.x;
+ //          v7.y = v3.y; 
+ //          v7.z = v3.z; 
+
+ //          sizeCounter++;
+ //        }
+ //    }
+ //    glEnd();
+ //    sizeCounter = 0;
+ //    glColor3f(1.0f,1.0f,1.0f);
+ // }
+
+  void drawSpline(double offSet){
+  ini = false;
   int sizeCounter = 0;
-  glPointSize(8);
   point v0;
   point v1;
   point v2;
@@ -311,41 +416,40 @@ void PopulateNormalVectorArray(){
   point v5;
   point v6;
   point v7;
-  
 
   point nbDif;
   point nbSum;
-
-  double a = 0.01;
+  
+  double a = 0.001;
 
   glBegin(GL_TRIANGLE_STRIP);
 
     for(int i = 0 ; i< g_Splines[0].numControlPoints - 3; i++){
         for(double t=0;t<1;t+=speedControl)
         {
-          nbDif.x = normalArray[sizeCounter].x- BArray[sizeCounter].x;
-          nbDif.y = normalArray[sizeCounter].y- BArray[sizeCounter].y;
-          nbDif.z = normalArray[sizeCounter].z- BArray[sizeCounter].z;
+          nbDif.x = normalArray[sizeCounter].x- BArray[sizeCounter].x+offSet;
+          nbDif.y = normalArray[sizeCounter].y- BArray[sizeCounter].y+offSet;
+          nbDif.z = normalArray[sizeCounter].z- BArray[sizeCounter].z+offSet;
 
-          nbSum.x = normalArray[sizeCounter].x+ BArray[sizeCounter].x;
-          nbSum.y = normalArray[sizeCounter].y+ BArray[sizeCounter].y;
-          nbSum.z = normalArray[sizeCounter].z+ BArray[sizeCounter].z;
+          nbSum.x = normalArray[sizeCounter].x+ BArray[sizeCounter].x+offSet;
+          nbSum.y = normalArray[sizeCounter].y+ BArray[sizeCounter].y+offSet;
+          nbSum.z = normalArray[sizeCounter].z+ BArray[sizeCounter].z+offSet;
 
-          v0.x = allPointsArray[sizeCounter].x + a * (-nbDif.x);
-          v0.y = allPointsArray[sizeCounter].y + a * (-nbDif.y);
-          v0.z = allPointsArray[sizeCounter].z + a * (-nbDif.z);
+          v0.x = allPointsArray[sizeCounter].x + a * (-nbDif.x)+offSet;
+          v0.y = allPointsArray[sizeCounter].y + a * (-nbDif.y)+offSet;
+          v0.z = allPointsArray[sizeCounter].z + a * (-nbDif.z)+offSet;
 
-          v1.x = allPointsArray[sizeCounter].x + a * (nbSum.x);
-          v1.y = allPointsArray[sizeCounter].y + a * (nbSum.y);
-          v1.z = allPointsArray[sizeCounter].z + a * (nbSum.z);
+          v1.x = allPointsArray[sizeCounter].x + a * (nbSum.x)+offSet;
+          v1.y = allPointsArray[sizeCounter].y + a * (nbSum.y)+offSet;
+          v1.z = allPointsArray[sizeCounter].z + a * (nbSum.z)+offSet;
 
-          v2.x = allPointsArray[sizeCounter].x + a * (nbDif.x);
-          v2.y = allPointsArray[sizeCounter].y + a * (nbDif.y);
-          v2.z = allPointsArray[sizeCounter].z + a * (nbDif.z);
+          v2.x = allPointsArray[sizeCounter].x + a * (nbDif.x)+offSet;
+          v2.y = allPointsArray[sizeCounter].y + a * (nbDif.y)+offSet;
+          v2.z = allPointsArray[sizeCounter].z + a * (nbDif.z)+offSet;
 
-          v3.x = allPointsArray[sizeCounter].x + a * (-nbSum.x);
-          v3.y = allPointsArray[sizeCounter].y + a * (-nbSum.y);
-          v3.z = allPointsArray[sizeCounter].z + a * (-nbSum.z);
+          v3.x = allPointsArray[sizeCounter].x + a * (-nbSum.x)+offSet;
+          v3.y = allPointsArray[sizeCounter].y + a * (-nbSum.y)+offSet;
+          v3.z = allPointsArray[sizeCounter].z + a * (-nbSum.z)+offSet;
 
           glColor3f(0.5f,0.0f,0.5f);
 
@@ -354,7 +458,11 @@ void PopulateNormalVectorArray(){
           glVertex3f(v2.x,v2.y,v2.z);
           glVertex3f(v3.x,v3.y,v3.z);
 
-          if(ini || !((i==g_Splines[0].numControlPoints - 1) && (t==(1-speedControl)))){
+          if(((i==g_Splines[0].numControlPoints - 4))){
+            glEnd();
+            continue;
+          }
+          if(ini){
             glVertex3f(v1.x,v1.y,v1.z);
             glVertex3f(v5.x,v5.y,v5.z);
             glVertex3f(v4.x,v4.y,v4.z);
@@ -367,6 +475,11 @@ void PopulateNormalVectorArray(){
 
             glVertex3f(v2.x,v2.y,v2.z);
             glVertex3f(v6.x,v6.y,v6.z);
+            glVertex3f(v7.x,v7.y,v7.z);
+            glVertex3f(v3.x,v3.y,v3.z);
+
+            glVertex3f(v0.x,v0.y,v0.z);
+            glVertex3f(v4.x,v4.y,v4.z);
             glVertex3f(v7.x,v7.y,v7.z);
             glVertex3f(v3.x,v3.y,v3.z);
           }
@@ -393,7 +506,6 @@ void PopulateNormalVectorArray(){
         }
     }
     glEnd();
-
     sizeCounter = 0;
     glColor3f(1.0f,1.0f,1.0f);
  }
@@ -521,7 +633,10 @@ void display(void)
   glScalef(g_vLandScale[0],-g_vLandScale[1],-g_vLandScale[2]);
 
   updateCamera();
-  drawSpline();
+  // drawSpline();
+  drawSpline(0.003);
+  drawSpline(-0.003);
+
   drawGround(0);
   drawGround(1);
   drawGround(2);
