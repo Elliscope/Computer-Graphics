@@ -21,7 +21,6 @@ int g_iLeftMouseButton = 0;    /* 1 if pressed, 0 if not */
 int g_iMiddleMouseButton = 0;
 int g_iRightMouseButton = 0;
 
-
 typedef enum { ROTATE, TRANSLATE, SCALE } CONTROLSTATE;
 
 CONTROLSTATE g_ControlState = ROTATE;
@@ -36,10 +35,10 @@ int CameraPoint = 0;
 GLuint texture[6];
 
 GLfloat sceneLength = 1000;
-double scale = 1;
+double scale = 5.5;
 //speedControl range from 0~1; is the t increment value of spline.
 double speedControl = 0.01;
-
+GLboolean ini = false;
 
 /* represents one control point along the spline */
 struct point {
@@ -65,18 +64,15 @@ point * tangentArray;
 point * normalArray;
 point * BArray;
 
-
 void printPoint(string name, point x){
     cout<<"The point "<<name <<" has value "<<x.x << " "<<x.y<<" " <<x.z<<endl; 
 }
-
 
 int loadSplines(char *argv) {
   char *cName = (char *)malloc(128 * sizeof(char));
   FILE *fileList;
   FILE *fileSpline;
   int iType, i = 0, j, iLength;
-
 
   /* load the track file */
   fileList = fopen(argv, "r");
@@ -110,9 +106,9 @@ int loadSplines(char *argv) {
 
     /* saves the data to the struct */
     while (fscanf(fileSpline, "%lf %lf %lf", 
-	   &g_Splines[j].points[i].x, 
-	   &g_Splines[j].points[i].y, 
-	   &g_Splines[j].points[i].z) != EOF) {
+     &g_Splines[j].points[i].x, 
+     &g_Splines[j].points[i].y, 
+     &g_Splines[j].points[i].z) != EOF) {
       i++;
     }
   }
@@ -139,7 +135,6 @@ GL_UNSIGNED_BYTE,
  &img->pix[0]);
  pic_free(img);
 
- //cout<<"inside the texload function "<<texture[0]<< " filename : "<< filename<<endl;
 } 
 
  
@@ -200,7 +195,6 @@ void initScene()
   texload(4,"skybox/posx.jpg");
   texload(5,"skybox/negx.jpg");
  
-
   glClearColor(0.0,0.0,0.0,0.0);
   glEnable(GL_DEPTH_TEST);
   glShadeModel(GL_FLAT);
@@ -231,63 +225,23 @@ void storePoints(double i, double t, double x, double y,double z,int sizeCounter
 
 
 void storeTangentValue(double i, double t, double x, double y,double z,int sizeCounter){
-  //int temp = (int)(i*100+t*100);  
+
   tangentArray[sizeCounter].x=x;
   tangentArray[sizeCounter].y=y;
   tangentArray[sizeCounter].z=z;
-  // cout<<"index i "<<i<<endl;
-  // printPoint("tangent value",tangentArray[temp]);
-
-  // cout<<"tangent at Index "<< temp<<endl;
-  // cout<<"v.x: " <<x <<"   v.y: "<<y<<"   v.z: " <<z<<endl;
 }
 
 
 void storeNormalVector(double i, double t, double x, double y,double z,int sizeCounter){
-  // int temp = (int)(i*100+t*100);
+
   normalArray[sizeCounter].x=x;
   normalArray[sizeCounter].y=y;
   normalArray[sizeCounter].z=z;
 }
 
-
 void PopulateNormalVectorArray(){
   for(int i = 1 ; i < g_Splines[0].numControlPoints/speedControl; i++){
-          //cout<<i<<endl;
-          // printPoint(" BArray[i-1]", BArray[i-1]);
-          
-          normalizeVector(tangentArray[i]);
-          normalArray[i] = crossProduct(BArray[i-1],tangentArray[i]);
-          normalizeVector(normalArray[i]);
-          // printPoint("HERE IN THE POPULATEFUNCTION BArray[i-1] ", BArray[i-1]);
-          // printPoint(" normalArray[i]", normalArray[i]);
-          //printPoint(" tangentArray[14]", tangentArray[14]);
-          //printPoint(" normalArray[13]", normalArray[13]);
-          BArray[i] = crossProduct(tangentArray[i],normalArray[i]);
-          //printPoint("HERE IN THE POPULATEFUNCTION BArray[13] ", BArray[13]);
-          normalizeVector(BArray[i]);
-          // cout<<"index "<<i<<endl;
-          // printPoint("HERE IN THE POPULATEFUNCTION tangentArray[i] ", tangentArray[i]);
-          // printPoint("HERE IN THE POPULATEFUNCTION ArrayAllPoints i ", allPointsArray[i]);
-          // printPoint("HERE IN THE POPULATEFUNCTION BArray[i] ", BArray[i]);
-          // printPoint(" normalArray[i]", normalArray[i]);
 
-    //cout<<"normalArray x VALUE at I" << normalArray[i].x<<endl;
-    // cout<<"normalArray x VALUE at index i " << normalArray[i].x<<endl;
-    // cout<<"normalArray y VALUE at index i " << normalArray[i].y<<endl;
-    // cout<<"normalArray z VALUE at index i " << normalArray[i].z<<endl;
-
-    // cout<<"normalArray x VALUE at index i " << tangentArray[i].x<<endl;
-    // cout<<"tangentArray y VALUE at index i " << tangentArray[i].y<<endl;
-    // cout<<"tangentArray z VALUE at index i " << tangentArray[i].z<<endl;
-  }
-}
-
-
-
- void drawSpline(){
-  //display the splines
-  // double t;
   struct point v; //Interpolated point 
   struct point tangent;
   struct point normal ;
@@ -296,15 +250,11 @@ void PopulateNormalVectorArray(){
         pointArray[i].x = g_Splines[0].points[i].x/scale;
         pointArray[i].y = g_Splines[0].points[i].y/scale;
         pointArray[i].z = g_Splines[0].points[i].z/scale;
-        //printf("Values of p1.x = %f and v.y = %f\n and v.z = %f\n", pointArray[i].x,pointArray[i].y,pointArray[i].z);
+     
   }
-
-  //glClear(GL_COLOR_BUFFER_BIT);
 
   int sizeCounter = 0;
   glPointSize(8);
-  glBegin(GL_LINE_STRIP);
-
     for(int i = 0 ; i< g_Splines[0].numControlPoints - 3; i++){
         for(double t=0;t<1;t+=speedControl)
         {
@@ -315,24 +265,10 @@ void PopulateNormalVectorArray(){
           //computer the tangent value at each segmentation point
           tangent = tagentVector(t,pointArray[i],pointArray[i+1],pointArray[i+2],pointArray[i+3]);
           storeTangentValue(i,t,tangent.x,tangent.y,tangent.z,sizeCounter);
-          //cout<<"index i "<<i<<endl;
-          // printPoint("tangent value",tangent);
-          
-          //weird things ever
-          //printPoint(" tangentArray[14]", tangentArray[14]);
-          // cout<<"index sizeCounter "<<sizeCounter<<endl;
-          // cout<<"value of t "<<t<<endl;
-          // int temp = (int)(i*100+t*100);
-          // cout<<"the value of temp "<<temp<<endl;
 
-          // printPoint("HERE IN THE POPULATEFUNCTION tangentArray[14] ", tangentArray[(int)(temp)]);
-
-          //draw the trajectory 
-          glVertex3f(v.x,v.y,v.z);
           sizeCounter++;
         }
     }
-    glEnd();
     //compute the normal value of each point 
     //manually create an arbitrary value and populate the array based on that
     struct point arbitraryPoint;
@@ -344,22 +280,122 @@ void PopulateNormalVectorArray(){
 
     firstNormal = crossProduct(tangentArray[0],arbitraryPoint);
     normalizeVector(firstNormal);
-    //printPoint("firstNormal",firstNormal);
+
 
     normalArray[0].x = firstNormal.x;
     normalArray[0].y = firstNormal.y;
     normalArray[0].z = firstNormal.z;
 
-    // cout<<"normalArray x VALUE at index 0 " << normalArray[0].x<<endl;
-    // cout<<"normalArray y VALUE at index 0 " << normalArray[0].y<<endl;
-    // cout<<"normalArray z VALUE at index 0 " << normalArray[0].x<<endl;
-
     BArray[0] = crossProduct(tangentArray[0],normalArray[0]);
-    //normalizeVector(BArray[0]);
-    //printPoint("BArray[0]",BArray[0]);
-    // cout<<"normalArray x VALUE at index i " << BArray[0].x<<endl;
-    // cout<<"BArray y VALUE at index i " << BArray[0].y<<endl;
-    // cout<<"BArray z VALUE at index i " << BArray[0].x<<endl;
+    normalizeVector(tangentArray[i]);
+    normalArray[i] = crossProduct(BArray[i-1],tangentArray[i]);
+    normalizeVector(normalArray[i]);
+    BArray[i] = crossProduct(tangentArray[i],normalArray[i]);
+
+    normalizeVector(BArray[i]);
+  }
+}
+
+
+
+ void drawSpline(){
+
+  int sizeCounter = 0;
+  glPointSize(8);
+  point v0;
+  point v1;
+  point v2;
+  point v3;
+
+  point v4;
+  point v5;
+  point v6;
+  point v7;
+  
+
+  point nbDif;
+  point nbSum;
+
+  double a = 0.01;
+
+  glBegin(GL_TRIANGLE_STRIP);
+
+    for(int i = 0 ; i< g_Splines[0].numControlPoints - 3; i++){
+        for(double t=0;t<1;t+=speedControl)
+        {
+          nbDif.x = normalArray[sizeCounter].x- BArray[sizeCounter].x;
+          nbDif.y = normalArray[sizeCounter].y- BArray[sizeCounter].y;
+          nbDif.z = normalArray[sizeCounter].z- BArray[sizeCounter].z;
+
+          nbSum.x = normalArray[sizeCounter].x+ BArray[sizeCounter].x;
+          nbSum.y = normalArray[sizeCounter].y+ BArray[sizeCounter].y;
+          nbSum.z = normalArray[sizeCounter].z+ BArray[sizeCounter].z;
+
+          v0.x = allPointsArray[sizeCounter].x + a * (-nbDif.x);
+          v0.y = allPointsArray[sizeCounter].y + a * (-nbDif.y);
+          v0.z = allPointsArray[sizeCounter].z + a * (-nbDif.z);
+
+          v1.x = allPointsArray[sizeCounter].x + a * (nbSum.x);
+          v1.y = allPointsArray[sizeCounter].y + a * (nbSum.y);
+          v1.z = allPointsArray[sizeCounter].z + a * (nbSum.z);
+
+          v2.x = allPointsArray[sizeCounter].x + a * (nbDif.x);
+          v2.y = allPointsArray[sizeCounter].y + a * (nbDif.y);
+          v2.z = allPointsArray[sizeCounter].z + a * (nbDif.z);
+
+          v3.x = allPointsArray[sizeCounter].x + a * (-nbSum.x);
+          v3.y = allPointsArray[sizeCounter].y + a * (-nbSum.y);
+          v3.z = allPointsArray[sizeCounter].z + a * (-nbSum.z);
+
+          glColor3f(0.5f,0.0f,0.5f);
+
+          glVertex3f(v0.x,v0.y,v0.z);
+          glVertex3f(v1.x,v1.y,v1.z);
+          glVertex3f(v2.x,v2.y,v2.z);
+          glVertex3f(v3.x,v3.y,v3.z);
+
+          if(ini || !((i==g_Splines[0].numControlPoints - 1) && (t==(1-speedControl)))){
+            glVertex3f(v1.x,v1.y,v1.z);
+            glVertex3f(v5.x,v5.y,v5.z);
+            glVertex3f(v4.x,v4.y,v4.z);
+            glVertex3f(v0.x,v0.y,v0.z);
+
+            glVertex3f(v2.x,v2.y,v2.z);
+            glVertex3f(v6.x,v6.y,v6.z);
+            glVertex3f(v5.x,v5.y,v5.z);
+            glVertex3f(v1.x,v1.y,v1.z);
+
+            glVertex3f(v2.x,v2.y,v2.z);
+            glVertex3f(v6.x,v6.y,v6.z);
+            glVertex3f(v7.x,v7.y,v7.z);
+            glVertex3f(v3.x,v3.y,v3.z);
+          }
+
+          ini = true;
+
+          v4.x = v0.x;
+          v4.y = v0.y; 
+          v4.z = v0.z ;
+
+          v5.x = v1.x;
+          v5.y = v1.y; 
+          v5.z = v1.z; 
+
+          v6.x = v2.x;
+          v6.y = v2.y; 
+          v6.z = v2.z; 
+        
+          v7.x = v3.x;
+          v7.y = v3.y; 
+          v7.z = v3.z; 
+
+          sizeCounter++;
+        }
+    }
+    glEnd();
+
+    sizeCounter = 0;
+    glColor3f(1.0f,1.0f,1.0f);
  }
 
 void drawGround(int i){
@@ -370,7 +406,6 @@ void drawGround(int i){
  glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-
 
  glBegin(GL_POLYGON);
   if(i==0){
@@ -435,31 +470,35 @@ void drawGround(int i){
 
 void updateCamera(){
   if(CameraPoint<(g_Splines[0].numControlPoints-3)/speedControl){
-    GLdouble centerx = allPointsArray[CameraPoint].x+10*tangentArray[CameraPoint].x;
-    GLdouble centery = allPointsArray[CameraPoint].y+10*tangentArray[CameraPoint].y;
-    GLdouble centerz = allPointsArray[CameraPoint].z+10*tangentArray[CameraPoint].z;
-    gluLookAt(allPointsArray[CameraPoint].x,allPointsArray[CameraPoint].y,allPointsArray[CameraPoint].z,centerx,centery,centerz,BArray[CameraPoint].x,BArray[CameraPoint].y,BArray[CameraPoint].z);
-    
 
+    int index = (g_Splines[0].numControlPoints-3)/speedControl- CameraPoint;
+
+    GLdouble eyex = allPointsArray[index].x+0.02*normalArray[index].x;
+    GLdouble eyey = allPointsArray[index].y+0.02*normalArray[index].y;
+    GLdouble eyez = allPointsArray[index].z+0.02*normalArray[index].z;
+
+    GLdouble centerx = (eyex+1*tangentArray[index].x);
+    GLdouble centery = (eyey+1*tangentArray[index].y);
+    GLdouble centerz = (eyez+1*tangentArray[index].z);
+    
+    gluLookAt(eyex,eyey,eyez,centerx,centery,centerz,-normalArray[index].x,-normalArray[index].y,-normalArray[index].z);
+    
     // glBegin(GL_LINE_STRIP);
-    //       glColor3f(1.0f,0.0f,0.0f);
-    //       glVertex3f(allPointsArray[CameraPoint].x,allPointsArray[CameraPoint].y,allPointsArray[CameraPoint].z);
-    //       glVertex3f(allPointsArray[CameraPoint].x+tangentArray[CameraPoint].x,allPointsArray[CameraPoint].y+tangentArray[CameraPoint].y,allPointsArray[CameraPoint].z+tangentArray[CameraPoint].z);
-    //       glColor3f(1.0f,1.0f,1.0f);
+    //       glColor3f(1.0f,1.0f,0.0f);
+    //       glVertex3f(eyex,eyey,eyez);
+    //       glVertex3f(allPointsArray[CameraPoint].x+normalArray[CameraPoint].x,allPointsArray[CameraPoint].y+normalArray[CameraPoint].y,allPointsArray[CameraPoint].z+normalArray[CameraPoint].z);
     // glEnd();
 
-
-    cout<<CameraPoint<<" CameraPoint "<<endl;
-    cout<<"Look at Point eye value "<<allPointsArray[CameraPoint].x<<" "<<allPointsArray[CameraPoint].y<<" "<<allPointsArray[CameraPoint].z<<endl;
-    cout<<"->BArray value  "<<BArray[CameraPoint].x<<" "<<BArray[CameraPoint].y<<" "<<BArray[CameraPoint].z<<endl;
-    cout<<"->tangentArray value"<<tangentArray[CameraPoint].x<<" "<<tangentArray[CameraPoint].y<<" "<<tangentArray[CameraPoint].z<<endl;
-    
+    // glBegin(GL_LINE_STRIP);
+    //       glColor3f(0.0f,1.0f,0.0f);
+    //       glVertex3f(eyex,eyey,eyez);
+    //       glVertex3f(centerx,centery,centerz);
+    // glEnd();
+  
     CameraPoint++;
   }else{
-    cout<<"beyond the bound"<<endl;
-    cout<<"CameraPoint "<<CameraPoint<<endl;
+    //reset the cameara point to zero
     CameraPoint=0;
-    cout<<"updated CameraPoint "<<CameraPoint<<endl;
     return;
   }
 }
@@ -467,9 +506,6 @@ void updateCamera(){
 
 void display(void)
 {
-  // glBegin(GL_LINE); 
-  //         glColor3f(1.0f,0.0f,0.0f);glColor3b(1,0,0);glVertex3f(0,0,0);glVertex3f(10,0,0);
-  // glEnd();
 
   //rotation with movement of mouse drag
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -484,12 +520,8 @@ void display(void)
   glRotatef(g_vLandRotate[2],0,0,1);
   glScalef(g_vLandScale[0],-g_vLandScale[1],-g_vLandScale[2]);
 
-updateCamera();
+  updateCamera();
   drawSpline();
-  
-  
- 
-
   drawGround(0);
   drawGround(1);
   drawGround(2);
@@ -497,19 +529,9 @@ updateCamera();
   drawGround(4);
   drawGround(5);
 
-
-  //populate the normalArray based on existing 
-  PopulateNormalVectorArray();
-    // cout<<"Point at index 14 "<<allPointsArray[14].x<<" "<<allPointsArray[14].y<<" "<<allPointsArray[14].z<<endl;
-    // cout<<"normal at 14  "<<normalArray[14].x<<" "<<normalArray[14].y<<" "<<normalArray[14].z<<endl;
-    // cout<<" CameraPoint "<<endl;
-
-
   glFlush();
 }
  
-
-
 /* converts mouse drags into information about 
 rotation/translation/scaling */
 void mousedrag(int x, int y)
@@ -647,7 +669,8 @@ int main (int argc, char ** argv)
   glEnable(GL_DEPTH_TEST);
   glShadeModel(GL_SMOOTH);            
   // interpolate colors during rasterization
- 
+  PopulateNormalVectorArray();
+
   glutDisplayFunc(display); 
   glutReshapeFunc(reshape);
 
