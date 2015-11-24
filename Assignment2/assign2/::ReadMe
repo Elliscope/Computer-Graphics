@@ -1,0 +1,47 @@
+//ReadMe
+
+Finished:
+
+1. Basic Implementation. Step1 through Step5
+2. Two Rails: Extra Points.
+
+Requirement Comparison:
+
+Complete all levels.
+•Properly render Catmull-Rom splines to represent your track.
+•Render a texture-mapped ground and sky.
+•Render a rail cross-section.
+•Move the camera at a reasonable speed in a continuous path and orientation along the coaster.
+•Render the coaster in an interesting manner (good visibility, realism).
+•Run at interactive frame rates (>15fps at 640x480)
+•Be reasonably commented and written in an understandable manner--we will read your code.
+•Be submitted along with JPEG frames for the required animation (see below).
+
+
+•Be submitted along with a readme file documenting your program's features and describing the approaches you took to each of the open-ended problems we posed here (rendering the sky and determining coaster normals in particular). This is especially crucial if you have done something spectacular for which you wish to receive extra credit!
+
+
+Explaination:
+1.Spline
+
+Manually compute the point based on the Matrix multiplication using equations from the spline slides.
+
+function: 
+//compute the CatmullRoll Spline point 
+CatmullRoll(float t, struct point p1, struct point p2, struct point p3, struct point p4)
+//compute the tangent Vector at cetain point on spline
+struct point tagentVector(float t, struct point p1, struct point p2, struct point p3, struct point p4)
+
+The spline point, tangent value as well as normal value is precomputed before rendering in the init() functions. Then duing the rendering, it goes through points stored on memory and render the rail roll.
+
+Aribitray vector is manually selected.(0,0,1) and all other BArray(), normal is populated
+
+2.Skybox
+
+Follow instrctions from the guide and set it up.
+
+3.two rail roll: Extra Credits
+
+Shift the rail roll relative to the lookAt point and create a parallel rail roll.
+There is a function called displaySpline(a) that takes shift value as parameter to generate the rail
+

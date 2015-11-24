@@ -20,6 +20,7 @@ int g_vMousePos[2] = {0, 0};
 int g_iLeftMouseButton = 0;    /* 1 if pressed, 0 if not */
 int g_iMiddleMouseButton = 0;
 int g_iRightMouseButton = 0;
+int animationSaveCount=0;
 
 typedef enum { ROTATE, TRANSLATE, SCALE } CONTROLSTATE;
 
@@ -30,12 +31,18 @@ float g_vLandRotate[3] = {0.0, 0.0, 0.0};
 float g_vLandTranslate[3] = {0.0, 0.0, 0.0};
 float g_vLandScale[3] = {0.5, 0.5, 0.5};
 
+//counter of camera frame
 int CameraPoint = 0;
-//ground
+//ground texture
 GLuint texture[6];
 
+//the lenght of scene/skeybox
 GLfloat sceneLength = 1000;
+
+//scale control value
 double scale = 5.5;
+
+
 //speedControl range from 0~1; is the t increment value of spline.
 double speedControl = 0.01;
 GLboolean ini = false;
@@ -64,9 +71,6 @@ point * tangentArray;
 point * normalArray;
 point * BArray;
 
-void printPoint(string name, point x){
-    cout<<"The point "<<name <<" has value "<<x.x << " "<<x.y<<" " <<x.z<<endl; 
-}
 
 int loadSplines(char *argv) {
   char *cName = (char *)malloc(128 * sizeof(char));
@@ -137,7 +141,43 @@ GL_UNSIGNED_BYTE,
 
 } 
 
- 
+
+
+void saveScreenshot (char *filename)
+{
+  int i, j;
+  Pic *in = NULL;
+
+  if (filename == NULL)
+    return;
+
+  /* Allocate a picture buffer */
+  in = pic_alloc(640, 480, 3, NULL);
+
+  printf("File to save to: %s\n", filename);
+
+  for (i=479; i>=0; i--) {
+    glReadPixels(0, 479-i, 640, 1, GL_RGB, GL_UNSIGNED_BYTE,
+                 &in->pix[i*in->nx*in->bpp]);
+  }
+
+  if (jpeg_write(filename, in))
+    printf("File saved Successfully\n");
+  else
+    printf("Error in Saving\n");
+
+  pic_free(in);
+}
+
+void MakeFile(int a){
+  char myFilenm[2048];
+ sprintf(myFilenm, "animation/anim.%04d.jpg", a);
+ saveScreenshot(myFilenm);
+ // myFilenm will be anim.0001.jpg, anim.0002.jpg..........anim.0999.jpg
+ // ..
+}
+
+//function to compute the CatmullRoll point
 struct point CatmullRoll(float t, struct point p1, struct point p2, struct point p3, struct point p4)
 {
 
@@ -154,6 +194,7 @@ struct point CatmullRoll(float t, struct point p1, struct point p2, struct point
   return v; 
 }
 
+//function to compute the tagentVector on the CatmullRoll Spline
 struct point tagentVector(float t, struct point p1, struct point p2, struct point p3, struct point p4)
 {
   float t2 = t;
@@ -167,6 +208,7 @@ struct point tagentVector(float t, struct point p1, struct point p2, struct poin
   return v; 
 }
 
+//function for computing crossproduct of two point
 struct point crossProduct(point p1, point p2){
   struct point n;
   n.x = (p1.y*p2.z)-(p1.z*p2.y);
@@ -175,6 +217,7 @@ struct point crossProduct(point p1, point p2){
   return n;
 }
 
+//helper funtion to compute normal
 void normalizeVector(point& p){
   double length = sqrt(p.x*p.x+p.y*p.y+p.z*p.z);
   point temp;
@@ -239,6 +282,7 @@ void storeNormalVector(double i, double t, double x, double y,double z,int sizeC
   normalArray[sizeCounter].z=z;
 }
 
+//funtion to populate the tangent/BArray
 void PopulateNormalVectorArray(){
   for(int i = 1 ; i < g_Splines[0].numControlPoints/speedControl; i++){
 
@@ -295,114 +339,6 @@ void PopulateNormalVectorArray(){
     normalizeVector(BArray[i]);
   }
 }
-
-
-
- // void drawSpline(){
- //  ini = false;
- //  int sizeCounter = 0;
- //  point v0;
- //  point v1;
- //  point v2;
- //  point v3;
-
- //  point v4;
- //  point v5;
- //  point v6;
- //  point v7;
-
- //  point nbDif;
- //  point nbSum;
-
- //  double a = 0.001;
-
- //  glBegin(GL_TRIANGLE_STRIP);
-
- //    for(int i = 0 ; i< g_Splines[0].numControlPoints - 3; i++){
- //        for(double t=0;t<1;t+=speedControl)
- //        {
- //          nbDif.x = normalArray[sizeCounter].x- BArray[sizeCounter].x;
- //          nbDif.y = normalArray[sizeCounter].y- BArray[sizeCounter].y;
- //          nbDif.z = normalArray[sizeCounter].z- BArray[sizeCounter].z;
-
- //          nbSum.x = normalArray[sizeCounter].x+ BArray[sizeCounter].x;
- //          nbSum.y = normalArray[sizeCounter].y+ BArray[sizeCounter].y;
- //          nbSum.z = normalArray[sizeCounter].z+ BArray[sizeCounter].z;
-
- //          v0.x = allPointsArray[sizeCounter].x + a * (-nbDif.x);
- //          v0.y = allPointsArray[sizeCounter].y + a * (-nbDif.y);
- //          v0.z = allPointsArray[sizeCounter].z + a * (-nbDif.z);
-
- //          v1.x = allPointsArray[sizeCounter].x + a * (nbSum.x);
- //          v1.y = allPointsArray[sizeCounter].y + a * (nbSum.y);
- //          v1.z = allPointsArray[sizeCounter].z + a * (nbSum.z);
-
- //          v2.x = allPointsArray[sizeCounter].x + a * (nbDif.x);
- //          v2.y = allPointsArray[sizeCounter].y + a * (nbDif.y);
- //          v2.z = allPointsArray[sizeCounter].z + a * (nbDif.z);
-
- //          v3.x = allPointsArray[sizeCounter].x + a * (-nbSum.x);
- //          v3.y = allPointsArray[sizeCounter].y + a * (-nbSum.y);
- //          v3.z = allPointsArray[sizeCounter].z + a * (-nbSum.z);
-
- //          glColor3f(0.5f,0.0f,0.5f);
-
- //          glVertex3f(v0.x,v0.y,v0.z);
- //          glVertex3f(v1.x,v1.y,v1.z);
- //          glVertex3f(v2.x,v2.y,v2.z);
- //          glVertex3f(v3.x,v3.y,v3.z);
-
- //          if(((i==g_Splines[0].numControlPoints - 4))){
- //            glEnd();
- //            continue;
- //          }
- //          if(ini){
- //            glVertex3f(v1.x,v1.y,v1.z);
- //            glVertex3f(v5.x,v5.y,v5.z);
- //            glVertex3f(v4.x,v4.y,v4.z);
- //            glVertex3f(v0.x,v0.y,v0.z);
-
- //            glVertex3f(v2.x,v2.y,v2.z);
- //            glVertex3f(v6.x,v6.y,v6.z);
- //            glVertex3f(v5.x,v5.y,v5.z);
- //            glVertex3f(v1.x,v1.y,v1.z);
-
- //            glVertex3f(v2.x,v2.y,v2.z);
- //            glVertex3f(v6.x,v6.y,v6.z);
- //            glVertex3f(v7.x,v7.y,v7.z);
- //            glVertex3f(v3.x,v3.y,v3.z);
-
- //            glVertex3f(v0.x,v0.y,v0.z);
- //            glVertex3f(v4.x,v4.y,v4.z);
- //            glVertex3f(v7.x,v7.y,v7.z);
- //            glVertex3f(v3.x,v3.y,v3.z);
- //          }
-
- //          ini = true;
-
- //          v4.x = v0.x;
- //          v4.y = v0.y; 
- //          v4.z = v0.z ;
-
- //          v5.x = v1.x;
- //          v5.y = v1.y; 
- //          v5.z = v1.z; 
-
- //          v6.x = v2.x;
- //          v6.y = v2.y; 
- //          v6.z = v2.z; 
-        
- //          v7.x = v3.x;
- //          v7.y = v3.y; 
- //          v7.z = v3.z; 
-
- //          sizeCounter++;
- //        }
- //    }
- //    glEnd();
- //    sizeCounter = 0;
- //    glColor3f(1.0f,1.0f,1.0f);
- // }
 
   void drawSpline(double offSet){
   ini = false;
@@ -594,18 +530,6 @@ void updateCamera(){
     GLdouble centerz = (eyez+1*tangentArray[index].z);
     
     gluLookAt(eyex,eyey,eyez,centerx,centery,centerz,-normalArray[index].x,-normalArray[index].y,-normalArray[index].z);
-    
-    // glBegin(GL_LINE_STRIP);
-    //       glColor3f(1.0f,1.0f,0.0f);
-    //       glVertex3f(eyex,eyey,eyez);
-    //       glVertex3f(allPointsArray[CameraPoint].x+normalArray[CameraPoint].x,allPointsArray[CameraPoint].y+normalArray[CameraPoint].y,allPointsArray[CameraPoint].z+normalArray[CameraPoint].z);
-    // glEnd();
-
-    // glBegin(GL_LINE_STRIP);
-    //       glColor3f(0.0f,1.0f,0.0f);
-    //       glVertex3f(eyex,eyey,eyez);
-    //       glVertex3f(centerx,centery,centerz);
-    // glEnd();
   
     CameraPoint++;
   }else{
@@ -633,9 +557,13 @@ void display(void)
   glScalef(g_vLandScale[0],-g_vLandScale[1],-g_vLandScale[2]);
 
   updateCamera();
-  // drawSpline();
   drawSpline(0.003);
   drawSpline(-0.003);
+
+  if(animationSaveCount<300){
+    MakeFile(animationSaveCount);
+    animationSaveCount++;
+  }
 
   drawGround(0);
   drawGround(1);
@@ -767,9 +695,6 @@ int main (int argc, char ** argv)
   tangentArray = new point[(int)(g_Splines[0].numControlPoints/speedControl)];
   normalArray = new point[(int)(g_Splines[0].numControlPoints/speedControl)];
   BArray = new point[(int)(g_Splines[0].numControlPoints/speedControl)];
-
-  //  replace with any animate code 
-  // glutIdleFunc(doIdle);
 
   glutInit(&argc, argv);
 
