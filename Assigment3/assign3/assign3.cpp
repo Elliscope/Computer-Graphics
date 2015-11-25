@@ -89,11 +89,13 @@ void plot_pixel_jpeg(int x,int y,unsigned char r,unsigned char g,unsigned char b
 void plot_pixel(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 
 //return t value
-double IntersectionWithSphere(Vertex origin, Vertex ray,Sphere spheres,double length){
+void IntersectionWithSphere(Vertex origin, Vertex ray,Sphere* spheres,double* spherT){
   Vertex InterSection;
+  for(int i =0 ; i < num_spheres; i++){
+  double length = sqrt(pow(ray.position[0],2)+pow(ray.position[1],2)+pow(ray.position[2],2));
   double a = 1;
-  double b = 2*(ray.position[0]*(origin.position[0]-spheres.position[0]) + ray.position[1]*(origin.position[1]-spheres.position[1]) +ray.position[2]*(origin.position[2]-spheres.position[2]))/length;
-  double c = pow((origin.position[0]-spheres.position[0]),2)+pow((origin.position[1]-spheres.position[1]),2)+pow((origin.position[2]-spheres.position[2]),2) - pow(spheres.radius,2);
+  double b = 2*(ray.position[0]*(origin.position[0]-spheres[i].position[0]) + ray.position[1]*(origin.position[1]-spheres[i].position[1]) +ray.position[2]*(origin.position[2]-spheres[i].position[2]))/length;
+  double c = pow((origin.position[0]-spheres[i].position[0]),2)+pow((origin.position[1]-spheres[i].position[1]),2)+pow((origin.position[2]-spheres[i].position[2]),2) - pow(spheres[i].radius,2);
 
   double solvable = pow(b,2)-4*a*c;
   if(solvable>0){
@@ -102,10 +104,11 @@ double IntersectionWithSphere(Vertex origin, Vertex ray,Sphere spheres,double le
 
     //need to double check the condition
     if(result1>0 && result2 >0){
-      return min(result1,result2);
+      spherT[i]= min(result1,result2);
     }
   }else{
-    return 0;
+      spherT[i]=-1;
+  }
   }
 }
 
@@ -152,7 +155,6 @@ void IntersectionWithTriangle(Eigen::Vector3d ray_origin,Vertex ray_direction, T
 
   //Prepare to test v parameter
   Q = T.cross(e1);
-  cout<<"Q "<<Q<<endl;
 
   //Calculate V parameter and test bound
   v = D.dot(Q)* inv_det;
@@ -191,17 +193,17 @@ void draw_scene()
   //compute top left 
   TopLeft.position[0]= -aspectRatio * tan(angle/2);
   TopLeft.position[1]= tan(angle/2);
-  TopLeft.position[2]=-1;
+  TopLeft.position[2]= -1;
 
   //compute top right
-  TopRight.position[0]=aspectRatio*tan(angle/2);
-  TopRight.position[1]=tan(angle/2);
-  TopRight.position[2]=-1;
+  TopRight.position[0]= aspectRatio*tan(angle/2);
+  TopRight.position[1]= tan(angle/2);
+  TopRight.position[2]= -1;
 
   //compute bottom left;
-  BotLeft.position[0]=- aspectRatio * tan(angle/2);
-  BotLeft.position[1]=- tan(angle/2);
-  BotLeft.position[2]=-1;
+  BotLeft.position[0]= -aspectRatio * tan(angle/2);
+  BotLeft.position[1]= -tan(angle/2);
+  BotLeft.position[2]= -1;
 
   //compute bottom right
   BotRight.position[0] = aspectRatio*tan(angle/2);
@@ -219,7 +221,7 @@ void draw_scene()
 
   Eigen::Vector3d ray_origin(0,0,0);
   double* trianT = new double[num_triangles];
-  double* spherT = new double[num_spheres];
+  double* sphereT = new double[num_spheres];
 
   //simple output
   for(x=0; x<WIDTH; x++)
@@ -230,21 +232,16 @@ void draw_scene()
     {
       
 
-      for(int i =0 ; i < num_spheres; i++){
-        double length = sqrt(pow(StartVertex.position[0],2)+pow(StartVertex.position[1],2)+pow(StartVertex.position[2],2));
-        double t1 = IntersectionWithSphere(CameraVector,StartVertex,spheres[i], length);
-        if(t1!=0){
-          plot_pixel(x,y,0,255,0);
-          break;
+
+      IntersectionWithSphere(CameraVector,StartVertex,spheres,sphereT);
+       for(int a = 0; a < num_spheres;a++){
+        if(sphereT[a]>0){
+           plot_pixel(x,y,0,255,0);
         }
       }
 
-
       IntersectionWithTriangle(ray_origin,StartVertex,triangles,trianT);
-
-
       for(int a = 0; a < num_triangles;a++){
-        cout<<trianT[a]<<"triangle  t "<<endl;
         if(trianT[a]>0){
            plot_pixel(x,y,0,255,0);
         }
