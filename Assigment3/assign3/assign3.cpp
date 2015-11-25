@@ -38,8 +38,8 @@ int mode=MODE_DISPLAY;
 Eigen::MatrixXd m(2,2);
 
 //you may want to make these smaller for debugging purposes
-#define WIDTH 640
-#define HEIGHT 480
+#define WIDTH 320
+#define HEIGHT 240
 
 //the field of view of the camera
 
@@ -88,21 +88,6 @@ void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned cha
 void plot_pixel_jpeg(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 void plot_pixel(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 
-double Area(Vertex centerOfMass, Vertex v1,Vertex v2){
-    //computer the areaRatio
-    // Vertex centerOfMass;
-    // centerOfMass.position[0]= tRatio*rayVector[0];
-    // centerOfMass.position[1]= tRatio*rayVector[1];
-    // centerOfMass.position[2]= tRatio*rayVector[2];
-
-    //Somehow the value of AREA Doen's trafer down correctly
-    //double Area= (1/2)*((v1.position[0]-centerOfMass.position[0])*(v2.position[1]-centerOfMass.position[1])-(v2.position[0]-centerOfMass.position[0])*(v1.position[1]-centerOfMass.position[1]));
-    //cout<<(v1.position[0]-centerOfMass.position[0])*(v2.position[1]-centerOfMass.position[1])-(v2.position[0]-centerOfMass.position[0])*(v1.position[1]-centerOfMass.position[1])<<"the front Area value is "<<endl;
-    //cout<<(v2.position[0]-centerOfMass.position[0])*(v1.position[1]-centerOfMass.position[1])<<"the back Area value is "<<endl;
-    //cout<<Area<<" the Area value is "<<endl;
-    return (v1.position[0]-centerOfMass.position[0])*(v2.position[1]-centerOfMass.position[1])-(v2.position[0]-centerOfMass.position[0])*(v1.position[1]-centerOfMass.position[1]);
-}
-
 //return t value
 double IntersectionWithSphere(Vertex origin, Vertex ray,Sphere spheres,double length){
   Vertex InterSection;
@@ -110,17 +95,10 @@ double IntersectionWithSphere(Vertex origin, Vertex ray,Sphere spheres,double le
   double b = 2*(ray.position[0]*(origin.position[0]-spheres.position[0]) + ray.position[1]*(origin.position[1]-spheres.position[1]) +ray.position[2]*(origin.position[2]-spheres.position[2]))/length;
   double c = pow((origin.position[0]-spheres.position[0]),2)+pow((origin.position[1]-spheres.position[1]),2)+pow((origin.position[2]-spheres.position[2]),2) - pow(spheres.radius,2);
 
-  // cout<<"value of a "<<a<<endl;
-  // cout<<"value of b "<<b<<endl;
-  // cout<<"value of c "<<c<<endl;
-
   double solvable = pow(b,2)-4*a*c;
   if(solvable>0){
     double result1 = (-b + sqrt(solvable))/2;
     double result2 = (-b - sqrt(solvable))/2;
-
-// cout<<"the value of result1 is "<<result1<<endl;
-// cout<<"the value of result2 y is "<<result2<<endl;
 
     //need to double check the condition
     if(result1>0 && result2 >0){
@@ -131,173 +109,25 @@ double IntersectionWithSphere(Vertex origin, Vertex ray,Sphere spheres,double le
   }
 }
 
-
-//return t value
-// double IntersectionWithTriangle(Vertex origin, Vertex ray, Triangle triangle){
-//   //first side
-//   double v1x = triangle.v[0].position[0]-triangle.v[1].position[0];
-//   double v1y = triangle.v[0].position[1]-triangle.v[1].position[1];
-//   double v1z = triangle.v[0].position[2]-triangle.v[1].position[2];
-
-//   //second side
-//   double v2x = triangle.v[0].position[0]-triangle.v[2].position[0];
-//   double v2y = triangle.v[0].position[1]-triangle.v[2].position[1];
-//   double v2z = triangle.v[0].position[2]-triangle.v[2].position[2];
-
-//   //use eigen to compute the normal vector of the triangle 
-//   // v1 x v2 = n; ->normalize it
-
-//   Eigen::Vector3d trianglePoint(triangle.v[0].position[0],triangle.v[0].position[1],triangle.v[0].position[2]);
-//   Eigen::Vector3d v(v1x,v1y,v1z);
-//   Eigen::Vector3d w(v2x,v2y,v2z);
-
-
-//   // cout<<" v is  "<< v<<endl;
-//   // cout<<" w is  "<< w<<endl;
-
-
-//   Eigen::Vector3d normalVector(v.cross(w)[0],v.cross(w)[1],v.cross(w)[2]);
-
-//   normalVector.normalize();
-//   // cout<<"THE NORMAL VECTOR IS "<<normalVector<<endl;
-
-//   //n[a b c]
-//   Eigen::Vector3d rayVector(ray.position[0],ray.position[1],ray.position[2]);
-//   rayVector.normalize();
-
-//   double d = - normalVector.dot(trianglePoint);
-//   //double d = -n[0]*triangle[0].position[0] - n[1]*triangle[0].position[1]-n[2]*triangle[0].position[2];
-//   // cout<<d<<" the value of d"<<endl;
-
-//   //compute t
-//   //t = -(d)/dot(n,d);
-
-//   double t = -d/(normalVector.dot(rayVector));
-//   // cout<<"t value "<<t<<endl;
-
-//   if(t==0){
-//     return 0;
-//   }else{
-//     //precompute the area of the triangle -> pass in as parameter
-//     Vertex centerOfMass;
-//     centerOfMass.position[0]= t*rayVector[0];
-//     centerOfMass.position[1]= t*rayVector[1];
-//     centerOfMass.position[2]= t*rayVector[2];
-
-//     // cout<<centerOfMass.position[0]<<" the centerOfMass is "<< endl;
-//     // cout<<centerOfMass.position[1]<<" the centerOfMass is "<< endl;
-//     // cout<<centerOfMass.position[2]<<" the centerOfMass is "<< endl;
-
-//     // double alph1 = Area(centerOfMass,triangle.v[0],triangle.v[1]);
-//     // double alph2 = Area(centerOfMass,triangle.v[1],triangle.v[2]);
-//     // double alph3 = Area(centerOfMass,triangle.v[0],triangle.v[2]);
-//     double origin = Area(triangle.v[0],triangle.v[1],triangle.v[2]);
-//     double alph1 = Area(centerOfMass,triangle.v[0],triangle.v[1])/origin;
-//     double alph2 = Area(centerOfMass,triangle.v[1],triangle.v[2])/origin;
-//     double alph3 = Area(centerOfMass,triangle.v[0],triangle.v[2])/origin;
-
-
-//     // cout<<"alph1 value is "<<alph1<<endl;
-//     // cout<<"alph2 value is "<<alph2<<endl;
-//     // cout<<"alph3 value is "<<alph3<<endl;
-//     // cout<<"origin value is "<<origin<<endl;
-//     //if 1,2,3 all bigger than 0 and less than 1. Return true;
-
-//     if(alph1>0 && alph2>0 &&alph3>0){
-//       if(t>0){
-//         return t;
-//       }
-//     }
-//   }
-//   return 0;
-// }
-
-
-//return t value
-// double IntersectionWithTriangle(Vertex origin, Vertex ray, Triangle triangle){
-
-//   Eigen::Vector3d P, Q;
-//   Eigen::Vector3d D(ray.position[0],ray.position[1],ray.position[2]);
-//   float det, inv_det, u, v;
-//   float t;
-
-//   //first side
-//   double v1x = triangle.v[1].position[0]-triangle.v[0].position[0];
-//   double v1y = triangle.v[1].position[1]-triangle.v[0].position[1];
-//   double v1z = triangle.v[1].position[2]-triangle.v[0].position[2];
-
-//   //second side
-//   double v2x = triangle.v[2].position[0]-triangle.v[0].position[0];
-//   double v2y = triangle.v[2].position[1]-triangle.v[0].position[1];
-//   double v2z = triangle.v[2].position[2]-triangle.v[0].position[2];
-
-//   Eigen::Vector3d trianglePoint(triangle.v[0].position[0],triangle.v[0].position[1],triangle.v[0].position[2]);
-//   Eigen::Vector3d e1(v1x,v1y,v1z);
-//   Eigen::Vector3d e2(v2x,v2y,v2z);
-
-//   P = D.cross(e2);
-//   det = e1.dot(P);
-
-//   cout<<"the value of D "<<D<<endl;
-//   cout<<"the value of det "<<det<<endl;
-//   cout<<"the value of e1 "<<e1<<endl;
-//   cout<<"the value of e2 "<<e2<<endl;
-
-//   //if determinant is near zero, ray lies in plane of triangle
-//   if(det > -EPSILON && det < EPSILON) return 0;
-
-//   inv_det = 1.f/det;
-//   cout<<"the value of inv_det "<<inv_det<<endl;
-//   Eigen::Vector3d T(ray.position[0],ray.position[1],ray.position[2]);
-
-//   u = T.dot(P) * inv_det;
-
-//   cout<<"the value of u "<<u<<endl;
-//   //if(u < 0.f || u > 1.f) return 0;
-
-//   Q=T.cross(e1);
-//   cout<<"the value of Q "<<Q<<endl;
-
-//   //Calculate V parameter and test bound
-//   v = D.dot(Q) * inv_det;
-
-
-//   //The intersection lies outside of the triangle
-//   //if(v < 0.f || u + v  > 1.f) return 0;
-
-//   t = e2.dot(Q) * inv_det;
-
-//   cout<<"e2.dot(Q) "<<e2.dot(Q)<<endl;
-
-//   cout<<"the value of t inside the triangle FUNCTION "<<t<<endl;
-//   if(t > EPSILON) { //ray intersection
-//     return t;
-//   }
-
-//   // No hit, no win
-//   return 0;
-
-// }
-
-double IntersectionWithTriangle(Eigen::Vector3d ray_origin,Vertex ray_direction, Triangle triangle)
+void IntersectionWithTriangle(Eigen::Vector3d ray_origin,Vertex ray_direction, Triangle* triangle, double* trianT)
 {
-  bool hitTriangle = false;
-
-
   Eigen::Vector3d P, Q;
   double det, inv_det, u, v;
   double t;
-  Eigen::Vector3d T(ray_origin[0]-triangle.v[0].position[0],ray_origin[1]-triangle.v[0].position[1],ray_origin[2]-triangle.v[0].position[2]);
+
+  for(int i=0;i<num_triangles;i++){
+
+  Eigen::Vector3d T(ray_origin[0]-triangles[i].v[0].position[0],ray_origin[1]-triangles[i].v[0].position[1],ray_origin[2]-triangles[i].v[0].position[2]);
 
   //first edge
-  double v1x = triangle.v[1].position[0]-triangle.v[0].position[0];
-  double v1y = triangle.v[1].position[1]-triangle.v[0].position[1];
-  double v1z = triangle.v[1].position[2]-triangle.v[0].position[2];
+  double v1x = triangles[i].v[1].position[0]-triangles[i].v[0].position[0];
+  double v1y = triangles[i].v[1].position[1]-triangles[i].v[0].position[1];
+  double v1z = triangles[i].v[1].position[2]-triangles[i].v[0].position[2];
 
   //second edge
-  double v2x = triangle.v[2].position[0]-triangle.v[0].position[0];
-  double v2y = triangle.v[2].position[1]-triangle.v[0].position[1];
-  double v2z = triangle.v[2].position[2]-triangle.v[0].position[2];
+  double v2x = triangles[i].v[2].position[0]-triangles[i].v[0].position[0];
+  double v2y = triangles[i].v[2].position[1]-triangles[i].v[0].position[1];
+  double v2z = triangles[i].v[2].position[2]-triangles[i].v[0].position[2];
 
 
   Eigen::Vector3d e1(v1x,v1y,v1z);
@@ -307,35 +137,35 @@ double IntersectionWithTriangle(Eigen::Vector3d ray_origin,Vertex ray_direction,
 
   //Begin calculating determinant - also used to calculate u parameter
   P=D.cross(e2);
-  //CROSS(P, D, e2);
+
   //if determinant is near zero, ray lies in plane of triangle
   det = e1.dot(P);
 
   //NOT CULLING
-  if(det > -EPSILON && det < EPSILON) return 0;
+  if(det > -EPSILON && det < EPSILON) {trianT[i]=-1; continue;}
   inv_det = 1.f / det;
 
   //Calculate u parameter and test bound
   u = T.dot(P) * inv_det;
   //The intersection lies outside of the triangle
-  if(u < 0.f || u > 1.f) return 0;
+  if(u < 0.f || u > 1.f) {trianT[i]=-1; continue;}
 
   //Prepare to test v parameter
   Q = T.cross(e1);
   cout<<"Q "<<Q<<endl;
 
-
   //Calculate V parameter and test bound
   v = D.dot(Q)* inv_det;
   //The intersection lies outside of the triangle
-  if(v < 0.f || u + v  > 1.f) return 0;
+  if(v < 0.f || u + v  > 1.f) {trianT[i]=-1; continue;}
 
   t = e2.dot(Q) * inv_det;
   if(t > EPSILON) { //ray intersection
-    return t;
+    trianT[i]=t;
+  }else{
+    trianT[i]=-1;
   }
-    // No hit, no win
-  return 0;
+  }
 }
 
 //MODIFY THIS FUNCTION
@@ -388,6 +218,8 @@ void draw_scene()
   StartVertex.position[2] = BotLeft.position[2];
 
   Eigen::Vector3d ray_origin(0,0,0);
+  double* trianT = new double[num_triangles];
+  double* spherT = new double[num_spheres];
 
   //simple output
   for(x=0; x<WIDTH; x++)
@@ -407,13 +239,17 @@ void draw_scene()
         }
       }
 
-      for(int i =0 ; i < num_triangles; i++){
-      double t2 = IntersectionWithTriangle(ray_origin,StartVertex,triangles[i]);
-        if(t2 !=0){
-          plot_pixel(x,y,0,255,0);
-          break;
+
+      IntersectionWithTriangle(ray_origin,StartVertex,triangles,trianT);
+
+
+      for(int a = 0; a < num_triangles;a++){
+        cout<<trianT[a]<<"triangle  t "<<endl;
+        if(trianT[a]>0){
+           plot_pixel(x,y,0,255,0);
         }
       }
+         
       StartVertex.position[1]+=DeltaY;
     }
 
@@ -424,8 +260,6 @@ void draw_scene()
   }
   printf("Done!\n"); fflush(stdout);
 }
-
-
 
 void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned char b)
 {
