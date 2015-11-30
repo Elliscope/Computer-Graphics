@@ -38,8 +38,8 @@ int mode=MODE_DISPLAY;
 Eigen::MatrixXd m(2,2);
 
 //you may want to make these smaller for debugging purposes
-#define WIDTH 320
-#define HEIGHT 240
+#define WIDTH 640
+#define HEIGHT 480
 
 //the field of view of the camera
 
@@ -89,30 +89,121 @@ void plot_pixel_jpeg(int x,int y,unsigned char r,unsigned char g,unsigned char b
 void plot_pixel(int x,int y,unsigned char r,unsigned char g,unsigned char b);
 
 //return t value
-void IntersectionWithSphere(Vertex origin, Vertex ray,Sphere* spheres,double* spherT){
+void IntersectionWithSphere(Eigen::Vector3d origin, Eigen::Vector3d ray,Sphere* spheres,double* spherT){
   Vertex InterSection;
   for(int i =0 ; i < num_spheres; i++){
-  double length = sqrt(pow(ray.position[0],2)+pow(ray.position[1],2)+pow(ray.position[2],2));
+  ray.normalize();
+  double length = sqrt(pow(ray[0],2)+pow(ray[1],2)+pow(ray[2],2));
   double a = 1;
-  double b = 2*(ray.position[0]*(origin.position[0]-spheres[i].position[0]) + ray.position[1]*(origin.position[1]-spheres[i].position[1]) +ray.position[2]*(origin.position[2]-spheres[i].position[2]))/length;
-  double c = pow((origin.position[0]-spheres[i].position[0]),2)+pow((origin.position[1]-spheres[i].position[1]),2)+pow((origin.position[2]-spheres[i].position[2]),2) - pow(spheres[i].radius,2);
+  double b = 2*(ray[0]*(origin[0]-spheres[i].position[0]) + ray[1]*(origin[1]-spheres[i].position[1]) +ray[2]*(origin[2]-spheres[i].position[2]))/length;
+  double c = pow((origin[0]-spheres[i].position[0]),2)+pow((origin[1]-spheres[i].position[1]),2)+pow((origin[2]-spheres[i].position[2]),2) - pow(spheres[i].radius,2);
 
   double solvable = pow(b,2)-4*a*c;
   if(solvable>0){
     double result1 = (-b + sqrt(solvable))/2;
     double result2 = (-b - sqrt(solvable))/2;
-
+  
     //need to double check the condition
     if(result1>0 && result2 >0){
       spherT[i]= min(result1,result2);
     }
-  }else{
-      spherT[i]=-1;
-  }
+    }else{
+        spherT[i]=-1;
+    }
   }
 }
 
-void IntersectionWithTriangle(Eigen::Vector3d ray_origin,Vertex ray_direction, Triangle* triangle, double* trianT)
+bool isBlockedBySpheres(Eigen::Vector3d origin, Eigen::Vector3d ray,Sphere* spheres,int current, bool isSphere){
+  Vertex InterSection;
+  for(int i =0 ; i < num_spheres; i++){
+    //jump over the current point
+    if(i==current && isSphere) i++;
+
+  ray.normalize();
+  double length = sqrt(pow(ray[0],2)+pow(ray[1],2)+pow(ray[2],2));
+  double a = 1;
+  double b = 2*(ray[0]*(origin[0]-spheres[i].position[0]) + ray[1]*(origin[1]-spheres[i].position[1]) +ray[2]*(origin[2]-spheres[i].position[2]))/length;
+  double c = pow((origin[0]-spheres[i].position[0]),2)+pow((origin[1]-spheres[i].position[1]),2)+pow((origin[2]-spheres[i].position[2]),2) - pow(spheres[i].radius,2);
+
+  double solvable = pow(b,2)-4*a*c;
+  if(solvable>0){
+    double result1 = (-b + sqrt(solvable))/2;
+    double result2 = (-b - sqrt(solvable))/2;
+  
+    //need to double check the condition
+    if(result1>0 && result2 >0){
+      return true;
+    }
+   }
+  }
+  return false;
+}
+
+
+
+
+
+bool isBlockedByTriangles(Eigen::Vector3d ray_origin, Eigen::Vector3d ray_direction, Triangle* triangle,int current,bool isSphere)
+{
+  Eigen::Vector3d P, Q;
+  double det, inv_det, u, v;
+  double t;
+
+  for(int i=0;i<num_triangles;i++){
+  //jump over the current point
+  if(i==current && !isSphere) i++;
+
+  Eigen::Vector3d T(ray_origin[0]-triangles[i].v[0].position[0],ray_origin[1]-triangles[i].v[0].position[1],ray_origin[2]-triangles[i].v[0].position[2]);
+
+  //first edge
+  double v1x = triangles[i].v[1].position[0]-triangles[i].v[0].position[0];
+  double v1y = triangles[i].v[1].position[1]-triangles[i].v[0].position[1];
+  double v1z = triangles[i].v[1].position[2]-triangles[i].v[0].position[2];
+
+  //second edge
+  double v2x = triangles[i].v[2].position[0]-triangles[i].v[0].position[0];
+  double v2y = triangles[i].v[2].position[1]-triangles[i].v[0].position[1];
+  double v2z = triangles[i].v[2].position[2]-triangles[i].v[0].position[2];
+
+
+  Eigen::Vector3d e1(v1x,v1y,v1z);
+  Eigen::Vector3d e2(v2x,v2y,v2z);
+  Eigen::Vector3d D(ray_direction[0],ray_direction[1],ray_direction[2]);
+  D.normalize();
+
+  //Begin calculating determinant - also used to calculate u parameter
+  P=D.cross(e2);
+
+  //if determinant is near zero, ray lies in plane of triangle
+  det = e1.dot(P);
+
+  //NOT CULLING
+  if(det > -EPSILON && det < EPSILON) {continue;}
+  inv_det = 1.f / det;
+
+  //Calculate u parameter and test bound
+  u = T.dot(P) * inv_det;
+  //The intersection lies outside of the triangle
+  if(u < 0.f || u > 1.f) {continue;}
+
+  //Prepare to test v parameter
+  Q = T.cross(e1);
+
+  //Calculate V parameter and test bound
+  v = D.dot(Q)* inv_det;
+  //The intersection lies outside of the triangle
+  if(v < 0.f || u + v  > 1.f) { continue;}
+
+  t = e2.dot(Q) * inv_det;
+  cout<<"the value of t "<<t<<endl;
+  if(t > EPSILON) { //ray intersection
+    return true;
+  }
+  }
+  return false;
+}
+
+void IntersectionWithTriangle(Eigen::Vector3d ray_origin,Eigen::Vector3d ray_direction, Triangle* triangle, double* trianT)
 {
   Eigen::Vector3d P, Q;
   double det, inv_det, u, v;
@@ -135,7 +226,7 @@ void IntersectionWithTriangle(Eigen::Vector3d ray_origin,Vertex ray_direction, T
 
   Eigen::Vector3d e1(v1x,v1y,v1z);
   Eigen::Vector3d e2(v2x,v2y,v2z);
-  Eigen::Vector3d D(ray_direction.position[0],ray_direction.position[1],ray_direction.position[2]);
+  Eigen::Vector3d D(ray_direction[0],ray_direction[1],ray_direction[2]);
   D.normalize();
 
   //Begin calculating determinant - also used to calculate u parameter
@@ -154,7 +245,7 @@ void IntersectionWithTriangle(Eigen::Vector3d ray_origin,Vertex ray_direction, T
   if(u < 0.f || u > 1.f) {trianT[i]=-1; continue;}
 
   //Prepare to test v parameter
-  Q = T.cross(e1);
+  Q = T.cross(e1);  
 
   //Calculate V parameter and test bound
   v = D.dot(Q)* inv_det;
@@ -169,6 +260,96 @@ void IntersectionWithTriangle(Eigen::Vector3d ray_origin,Vertex ray_direction, T
   }
   }
 }
+
+double FindMininum(double* array, int length){
+  double min = 10000;
+  for(int i = 0; i < length; i++){
+    if(array[i]<min && array[i]>0){
+      min=array[i];
+    }
+  }
+  return min;
+}
+
+int FindIndexOf(double min, double* array, int length){
+  for(int i = 0; i < length; i++){
+    if(array[i]==min){
+      return i;
+    }
+  }
+  return -1;
+}
+
+
+Eigen::Vector3d ApplyPhongModelWithTriangle(Eigen::Vector3d intersection,Eigen::Vector3d _v, Eigen::Vector3d l, Triangle triangle, Light Light){
+  
+  Eigen::Vector3d v = - _v;
+
+  //find the normal of triangle 
+  //constant for single triangle
+  Eigen::Vector3d n(triangle.v[0].normal[0],triangle.v[0].normal[1],triangle.v[0].normal[2]);
+
+  //coefficient
+  // double redL = L.color[0];
+  // double greL = L.color[1];
+  // double bluL = L.color[2];
+  
+  //light coefficient 
+  Eigen::Vector3d L(Light.color[0],Light.color[1],Light.color[2]);
+  //diffuse
+  //assume use the first point by default
+  Eigen::Vector3d Diffuse(triangle.v[0].color_diffuse[0],triangle.v[0].color_diffuse[1],triangle.v[0].color_diffuse[2]);
+  //specular 
+  Eigen::Vector3d Specular(triangle.v[0].color_specular[0],triangle.v[0].color_specular[1],triangle.v[0].color_specular[2]);
+
+  //computer the alph value (shineness value)
+  double alph = triangle.v[0].shininess;
+
+
+  //reflecDir
+  Eigen::Vector3d r = 2* l.dot(n)*n-l;
+  r.normalize();
+
+  Eigen::Vector3d pre_I = (Diffuse*(l.dot(n)) + Specular*pow(r.dot(v),alph));
+
+
+  Eigen::Vector3d I(pre_I[0]*L[0],pre_I[1]*L[1],pre_I[2]*L[2]);
+  return I;
+}
+
+Eigen::Vector3d ApplyPhongModelWithSphere(Eigen::Vector3d intersection,Eigen::Vector3d _v, Eigen::Vector3d l, Sphere sphere, Light Light){
+  
+  Eigen::Vector3d v = - _v;
+  v.normalize();
+
+  //find the normal of spheres
+  Eigen::Vector3d n((1/sphere.radius)*(intersection[0]-sphere.position[0]),(1/sphere.radius)*(intersection[1]-sphere.position[1]),(1/sphere.radius)*(intersection[2]-sphere.position[2]));
+  //light coefficient 
+  Eigen::Vector3d L(Light.color[0],Light.color[1],Light.color[2]);
+  //diffuse
+  //assume use the first point by default
+  Eigen::Vector3d Diffuse(sphere.color_diffuse[0],sphere.color_diffuse[1],sphere.color_diffuse[2]);
+  //specular 
+  Eigen::Vector3d Specular(sphere.color_specular[0],sphere.color_specular[1],sphere.color_specular[2]);
+
+  //computer the alph value (shininess value)
+  double alph = sphere.shininess;
+
+  //reflecDir
+  Eigen::Vector3d r = 2* l.dot(n)*n-l;
+  r.normalize();
+  double dr = r.dot(v);
+  // if(dr<0){
+  //   dr = 0;
+  // }
+
+  Eigen::Vector3d pre_I = (Diffuse*(l.dot(n)) + Specular*pow(dr,alph));
+
+  Eigen::Vector3d I(pre_I[0]*L[0],pre_I[1]*L[1],pre_I[2]*L[2]);
+  return I;
+
+}
+
 
 //MODIFY THIS FUNCTION
 void draw_scene()
@@ -186,10 +367,6 @@ void draw_scene()
   double aspectRatio = 1.333;
   double angle = PI/3;
 
-  for(int i =0 ; i< 3; i++){
-     CameraVector.position[i]=0;
-  }
- 
   //compute top left 
   TopLeft.position[0]= -aspectRatio * tan(angle/2);
   TopLeft.position[1]= tan(angle/2);
@@ -223,6 +400,9 @@ void draw_scene()
   double* trianT = new double[num_triangles];
   double* sphereT = new double[num_spheres];
 
+
+
+
   //simple output
   for(x=0; x<WIDTH; x++)
   {
@@ -230,26 +410,83 @@ void draw_scene()
     glBegin(GL_POINTS);
     for(y=0;y < HEIGHT;y++)
     {
-      
 
+      bool isTriangle = false;
+      bool isSphere = false;
+      Eigen::Vector3d ray_direction(StartVertex.position[0],StartVertex.position[1],StartVertex.position[2]);
 
-      IntersectionWithSphere(CameraVector,StartVertex,spheres,sphereT);
+      IntersectionWithSphere(ray_origin,ray_direction,spheres,sphereT);
+      //
        for(int a = 0; a < num_spheres;a++){
         if(sphereT[a]>0){
            plot_pixel(x,y,0,255,0);
         }
       }
 
-      IntersectionWithTriangle(ray_origin,StartVertex,triangles,trianT);
+      IntersectionWithTriangle(ray_origin,ray_direction,triangles,trianT);
+      //
       for(int a = 0; a < num_triangles;a++){
         if(trianT[a]>0){
            plot_pixel(x,y,0,255,0);
         }
       }
-         
+
+      //detect the shortest intersection ray 
+      //help to identify which sphere provides the smallest t value
+      //for drawing color purpose
+
+      double tsphere = FindMininum(sphereT,num_spheres);
+      double ttriangle = FindMininum(trianT,num_triangles);
+      int index;
+      double min;
+
+      if(tsphere<ttriangle){
+        index = FindIndexOf(tsphere,sphereT,num_spheres);
+        isSphere = true;
+        min = tsphere;
+      }else{
+        index = FindIndexOf(ttriangle,trianT,num_triangles);
+        isTriangle = true;
+        min = ttriangle;
+      }
+      
+      if(index!=-1){
+        // cout<<"the value of min"<<min<<endl;
+        // cout<<"the value of index "<<index<<endl;
+          Eigen::Vector3d intersection(ray_origin[0]+min*ray_direction[0],ray_origin[1]+min*ray_direction[1],ray_origin[2]+min*ray_direction[2]);
+        //use the minimum t to compute if blocked or not by light
+
+          Eigen::Vector3d Color(0,0,0);
+
+          for(int l = 0; l < num_lights ; l++){
+          //plot the pixel as default 
+          //as long as there is one light that's not blocked, print red
+          //plot_pixel(x,y,255,0,0);
+
+          Eigen::Vector3d Light(lights[l].position[0],lights[l].position[1],lights[l].position[2]);
+          Eigen::Vector3d rayTowardsLight = Light - intersection;
+
+          //Shadow Code 
+          //Need fix
+          if(isBlockedByTriangles(intersection,rayTowardsLight,triangles,index,isSphere) || isBlockedBySpheres(intersection,rayTowardsLight,spheres,index,isSphere)){
+            plot_pixel(x,y,255,0,0);
+          }
+
+          //phong model with Trinagle
+          // if(isTriangle){
+          //   Color += ApplyPhongModelWithTriangle(intersection,ray_direction,rayTowardsLight, triangles[index], lights[l]);
+          // }
+
+          //phong model with Sphere
+          // if(isSphere){
+          //   Color += ApplyPhongModelWithSphere(intersection,ray_direction,rayTowardsLight, spheres[index], lights[l]);
+          // }
+          
+          }
+           // plot_pixel(x,y,Color[0]*255,Color[1]*255,Color[2]*255);
+      }
       StartVertex.position[1]+=DeltaY;
     }
-
     StartVertex.position[1] = BotLeft.position[1];
     StartVertex.position[0]+=DeltaX;
     glEnd();
@@ -257,6 +494,8 @@ void draw_scene()
   }
   printf("Done!\n"); fflush(stdout);
 }
+
+
 
 void plot_pixel_display(int x,int y,unsigned char r,unsigned char g,unsigned char b)
 {
