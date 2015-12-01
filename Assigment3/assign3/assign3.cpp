@@ -338,10 +338,11 @@ Eigen::Vector3d ApplyPhongModelWithTriangle(Eigen::Vector3d intersection,Eigen::
   if(v_value < 0.f || u_value + v_value  > 1.f) {return empty;}
 
   Eigen::Vector3d v = - _v;
+
+  //problem of shining hole in the center of triangle 
   v.normalize();
-  //find the normal of triangle 
-  //constant for single triangle
-  
+
+  //find the normal of triangle
   Eigen::Vector3d normal0(triangle.v[0].normal[0],triangle.v[0].normal[1],triangle.v[0].normal[2]);
   Eigen::Vector3d normal1(triangle.v[1].normal[0],triangle.v[1].normal[1],triangle.v[1].normal[2]);
   Eigen::Vector3d normal2(triangle.v[2].normal[0],triangle.v[2].normal[1],triangle.v[2].normal[2]);
@@ -349,34 +350,30 @@ Eigen::Vector3d ApplyPhongModelWithTriangle(Eigen::Vector3d intersection,Eigen::
   Eigen::Vector3d n = (1- u_value - v_value)*normal0 + u_value * normal1 + v_value * normal2;
   n.normalize();
 
+  //Compute the Specular
   Eigen::Vector3d Specular0(triangle.v[0].color_specular[0],triangle.v[0].color_specular[1],triangle.v[0].color_specular[2]);
   Eigen::Vector3d Specular1(triangle.v[1].color_specular[0],triangle.v[1].color_specular[1],triangle.v[1].color_specular[2]);
   Eigen::Vector3d Specular2(triangle.v[2].color_specular[0],triangle.v[2].color_specular[1],triangle.v[2].color_specular[2]);
 
   Eigen::Vector3d Specular = (1.f - u_value - v_value)*Specular0 + u_value * Specular1 + v_value * Specular2;
 
+  //Compute the Diffuse
   Eigen::Vector3d Diffuse0(triangle.v[0].color_diffuse[0],triangle.v[0].color_diffuse[1],triangle.v[0].color_diffuse[2]);
   Eigen::Vector3d Diffuse1(triangle.v[1].color_diffuse[0],triangle.v[1].color_diffuse[1],triangle.v[1].color_diffuse[2]);
   Eigen::Vector3d Diffuse2(triangle.v[2].color_diffuse[0],triangle.v[2].color_diffuse[1],triangle.v[2].color_diffuse[2]);
 
   Eigen::Vector3d Diffuse = (1.f - u_value - v_value) * Diffuse0 + u_value * Diffuse1 + v_value * Diffuse2;
 
+  //Compute the Shineness 
   double shineness1 = triangle.v[0].shininess;
   double shineness2 = triangle.v[1].shininess;
   double shineness3 = triangle.v[2].shininess;
 
+  //Compute the alph
   double alph = (1.f - u_value - v_value) * shineness1 + u_value * shineness2 + v_value * shineness3;
   
   //light coefficient 
   Eigen::Vector3d L(Light.color[0],Light.color[1],Light.color[2]);
-  // //diffuse
-  // //assume use the first point by default
-  // Eigen::Vector3d Diffuse(triangle.v[0].color_diffuse[0],triangle.v[0].color_diffuse[1],triangle.v[0].color_diffuse[2]);
-  // //specular 
-  // Eigen::Vector3d Specular(triangle.v[0].color_specular[0],triangle.v[0].color_specular[1],triangle.v[0].color_specular[2]);
-
-  // //computer the alph value (shineness value)
-  // double alph = triangle.v[0].shininess;
 
   double l_dot_n = l.dot(n);
   if(l_dot_n<0){
@@ -394,6 +391,7 @@ Eigen::Vector3d ApplyPhongModelWithTriangle(Eigen::Vector3d intersection,Eigen::
   Eigen::Vector3d pre_I = (Diffuse * (l_dot_n) + Specular * pow(dr,alph));
   Eigen::Vector3d I(pre_I[0]*L[0],pre_I[1]*L[1],pre_I[2]*L[2]);
   return I;
+  
 }
 
 Eigen::Vector3d ApplyPhongModelWithSphere(Eigen::Vector3d intersection,Eigen::Vector3d _v, Eigen::Vector3d l, Sphere sphere, Light Light){
